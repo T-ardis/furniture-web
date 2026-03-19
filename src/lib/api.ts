@@ -82,6 +82,10 @@ export async function pollStatus(taskId: string): Promise<JobStatus> {
 }
 
 export function getDownloadUrl(taskId: string, format?: 'glb' | 'usdz'): string {
+  // USDZ: use Next.js proxy so iOS Quick Look gets the API key injected server-side
+  if (format === 'usdz') {
+    return `/api/download/${taskId}?format=usdz`;
+  }
   const base = `${API_URL}/download/${taskId}`;
   return format ? `${base}?format=${format}` : base;
 }
