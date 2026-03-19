@@ -16,7 +16,7 @@ import { useToast } from '@/components/Toast/ToastProvider';
 import useGeneration from '@/hooks/useGeneration';
 import { imageToBase64, urlToBase64 } from '@/lib/api';
 import { addToHistory, type HistoryItem } from '@/lib/history';
-import { canGenerate, canGenerateServer, incrementGenerationCount, captureUtmParams } from '@/lib/gate';
+import { getStoredEmail, canGenerate, incrementGenerationCount, captureUtmParams } from '@/lib/gate';
 import styles from './page.module.css';
 
 export default function Home() {
@@ -26,36 +26,41 @@ export default function Home() {
   // Capture UTM params from URL on first load
   useEffect(() => { captureUtmParams(); }, []);
 
+  // Auth state — email from localStorage
+  const [authedEmail, setAuthedEmail] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    setAuthedEmail(getStoredEmail());
+    setAuthChecked(true);
+  }, []);
+
   const [product, setProduct] = useState<ProductInput | null>(null);
   const [productBase64, setProductBase64] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
-  const [showGate, setShowGate] = useState(false);
+  const [limitReached, setLimitReached] = useState(false);
 
   // Refs for smooth scrolling to sections
   const productRef = useRef<HTMLDivElement>(null);
   const modelRef = useRef<HTMLDivElement>(null);
 
   const handleSubmit = useCallback(async (input: ProductInput) => {
-    // Fast client check, then verify with server (IP-based)
-    if (!canGenerate()) {
-      setShowGate(true);
-      return;
-    }
-    const serverAllowed = await canGenerateServer();
-    if (!serverAllowed) {
-      setShowGate(true);
+    if (!authedEmail) return;
+
+    // Check generation limit on backend
+    const allowed = await canGenerate(authedEmail);
+    if (!allowed) {
+      setLimitReached(true);
       return;
     }
 
     setProduct(input);
     gen.reset();
 
-    // Scroll to product card
     setTimeout(() => {
       productRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
 
-    // Convert image to base64 and start generation
     try {
       let b64: string;
       if (input.imageFile) {
@@ -69,7 +74,7 @@ export default function Home() {
     } catch {
       showError('Failed to process image. Please try again.');
     }
-  }, [gen, info, showError]);
+  }, [authedEmail, gen, info, showError]);
 
   const handleHistorySelect = useCallback(async (item: HistoryItem) => {
     const input: ProductInput = {
@@ -78,15 +83,13 @@ export default function Home() {
       widthCm: item.widthCm,
       heightCm: item.heightCm,
       depthCm: item.depthCm,
-      imageFile: new File([], 'history'), // placeholder
+      imageFile: new File([], 'history'),
       imagePreviewUrl: item.imageDataUrl,
     };
     setProduct(input);
     setProductBase64(item.imageDataUrl.split(',')[1] || '');
     gen.reset();
 
-    // For history items, we already have a taskId — try to download directly
-    // or the user will need to re-generate
     setTimeout(() => {
       productRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
@@ -94,7 +97,6 @@ export default function Home() {
 
   // Save to history when model is ready
   if (gen.phase === 'ready' && gen.taskId && product && productBase64) {
-    // Create a small data URL from the preview for history
     const historyItem: HistoryItem = {
       id: gen.taskId,
       name: product.name,
@@ -117,7 +119,7 @@ export default function Home() {
     prevPhaseRef.current = gen.phase;
 
     if (gen.phase === 'ready' && prev !== 'ready') {
-      incrementGenerationCount();
+      if (authedEmail) incrementGenerationCount(authedEmail);
       success('3D model ready! Drag to rotate, pinch to zoom.');
       setTimeout(() => {
         modelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -126,9 +128,23 @@ export default function Home() {
     if (gen.phase === 'failed' && prev !== 'failed') {
       showError(gen.error || 'Generation failed. Please try again.');
     }
-  }, [gen.phase, gen.error, success, showError]);
+  }, [gen.phase, gen.error, success, showError, authedEmail]);
 
   const isGenerating = gen.phase !== 'idle' && gen.phase !== 'ready' && gen.phase !== 'failed';
+
+  // Show nothing until we check localStorage
+  if (!authChecked) return null;
+
+  // Not authenticated — show email gate
+  if (!authedEmail) {
+    return (
+      <>
+        <Nav />
+        <WaitlistGate onAuthed={(email) => setAuthedEmail(email)} />
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -195,24 +211,29 @@ export default function Home() {
                   </svg>
                   Share This Model
                 </button>
-                <button
-                  className={styles.newBtn}
-                  onClick={async () => {
-                    if (!canGenerate() || !(await canGenerateServer())) {
-                      setShowGate(true);
-                      return;
-                    }
-                    setProduct(null); setProductBase64(null); gen.reset(); window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                >
-                  Generate Another
-                </button>
+                {limitReached ? (
+                  <p className={styles.limitNote}>You&apos;ve used your free generation.</p>
+                ) : (
+                  <button
+                    className={styles.newBtn}
+                    onClick={async () => {
+                      const allowed = await canGenerate(authedEmail);
+                      if (!allowed) {
+                        setLimitReached(true);
+                        return;
+                      }
+                      setProduct(null); setProductBase64(null); gen.reset(); window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    Generate Another
+                  </button>
+                )}
               </div>
             </div>
           </div>
         )}
 
-        {/* Room Preview (available once we have a product image) */}
+        {/* Room Preview */}
         {product && productBase64 && (gen.phase === 'generating' || gen.phase === 'ready') && (
           <RoomPreview
             productImageBase64={productBase64}
@@ -220,7 +241,7 @@ export default function Home() {
           />
         )}
 
-        {/* Similar Items (available during generation or after) */}
+        {/* Similar Items */}
         {product && productBase64 && (gen.phase === 'generating' || gen.phase === 'downloading' || gen.phase === 'ready') && (
           <SimilarItems
             productImageBase64={productBase64}
@@ -237,17 +258,6 @@ export default function Home() {
           taskId={gen.taskId}
           productName={product.name}
           onClose={() => setShowShare(false)}
-        />
-      )}
-
-      {/* Waitlist Gate */}
-      {showGate && (
-        <WaitlistGate
-          onClose={() => setShowGate(false)}
-          onJoined={() => {
-            setShowGate(false);
-            success('Welcome! You now have unlimited generations.');
-          }}
         />
       )}
     </>

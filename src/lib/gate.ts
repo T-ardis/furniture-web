@@ -1,162 +1,79 @@
-const STORAGE_KEY = 'tardis_gen_count';
-const WAITLIST_KEY = 'tardis_waitlisted';
+const EMAIL_KEY = 'tardis_email';
 const UTM_KEY = 'tardis_utm';
-const FP_KEY = 'tardis_fp';
-const FREE_LIMIT = 1;
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-// ── Browser fingerprint (stable across normal + incognito) ───────────────
+// ── Email session ────────────────────────────────────────────────────────
 
-/** Simple hash — same algo as Java's String.hashCode. */
-function hashCode(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) {
-    h = ((h << 5) - h + s.charCodeAt(i)) | 0;
-  }
-  return h;
+export function getStoredEmail(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(EMAIL_KEY);
 }
 
-function getCanvasFingerprint(): string {
-  try {
-    const canvas = document.createElement('canvas');
-    canvas.width = 200;
-    canvas.height = 50;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return '';
-    ctx.textBaseline = 'top';
-    ctx.font = '14px Arial';
-    ctx.fillStyle = '#f60';
-    ctx.fillRect(125, 1, 62, 20);
-    ctx.fillStyle = '#069';
-    ctx.fillText('Vastra fp', 2, 15);
-    ctx.fillStyle = 'rgba(102,204,0,0.7)';
-    ctx.fillText('Vastra fp', 4, 17);
-    return canvas.toDataURL();
-  } catch {
-    return '';
-  }
+export function storeEmail(email: string): void {
+  localStorage.setItem(EMAIL_KEY, email.toLowerCase().trim());
 }
 
-function getWebGLFingerprint(): string {
-  try {
-    const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-    if (!gl || !(gl instanceof WebGLRenderingContext)) return '';
-    const ext = gl.getExtension('WEBGL_debug_renderer_info');
-    const vendor = ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : '';
-    const renderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '';
-    return `${vendor}~${renderer}`;
-  } catch {
-    return '';
-  }
+export function clearEmail(): void {
+  localStorage.removeItem(EMAIL_KEY);
 }
 
 /**
- * Generate a browser fingerprint that is stable across incognito and normal mode.
- * Uses canvas rendering, WebGL GPU info, screen resolution, timezone, and platform.
- * Cached in sessionStorage for the duration of the tab.
+ * Check if email exists in the Notion waitlist DB.
+ * Calls the Next.js API route (server-side Notion query).
  */
-export function generateFingerprint(): string {
-  if (typeof window === 'undefined') return 'ssr';
-
-  const cached = sessionStorage.getItem(FP_KEY);
-  if (cached) return cached;
-
-  const parts = [
-    getCanvasFingerprint(),
-    getWebGLFingerprint(),
-    `${screen.width}x${screen.height}x${screen.colorDepth}`,
-    Intl.DateTimeFormat().resolvedOptions().timeZone,
-    navigator.platform,
-    navigator.hardwareConcurrency?.toString() || '',
-    navigator.language,
-  ];
-
-  const raw = parts.join('|||');
-  const fp = Math.abs(hashCode(raw)).toString(36);
-
-  sessionStorage.setItem(FP_KEY, fp);
-  return fp;
-}
-
-// ── Generation counting (client + server) ────────────────────────────────
-
-export function getGenerationCount(): number {
-  if (typeof window === 'undefined') return 0;
-  return parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
-}
-
-export function isWaitlisted(): boolean {
-  if (typeof window === 'undefined') return false;
-  return localStorage.getItem(WAITLIST_KEY) === '1';
-}
-
-export function markWaitlisted(): void {
-  localStorage.setItem(WAITLIST_KEY, '1');
-  // Also unlock on persistent backend
-  const fp = generateFingerprint();
-  fetch(`${BACKEND_URL}/gate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'unlock', fingerprint: fp }),
-  }).catch(() => {});
-}
-
-/** Quick client-side check (used for instant UI gating). */
-export function canGenerate(): boolean {
-  return getGenerationCount() < FREE_LIMIT || isWaitlisted();
-}
-
-/**
- * Increment the generation counter on both client and persistent backend.
- * Call this when a generation completes successfully.
- */
-export async function incrementGenerationCount(): Promise<{ allowed: boolean }> {
-  // Client side
-  const count = getGenerationCount() + 1;
-  localStorage.setItem(STORAGE_KEY, String(count));
-
-  // Persistent backend — if server says no, trust the server
+export async function checkEmailInWaitlist(email: string): Promise<boolean> {
   try {
-    const fp = generateFingerprint();
-    const res = await fetch(`${BACKEND_URL}/gate`, {
+    const res = await fetch('/api/gate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'increment', fingerprint: fp }),
+      body: JSON.stringify({ email: email.toLowerCase().trim() }),
     });
     if (res.ok) {
       const data = await res.json();
-      return { allowed: data.allowed };
+      return data.found;
     }
-  } catch { /* server unreachable — fall back to client */ }
-
-  return { allowed: canGenerate() };
+  } catch { /* server unreachable */ }
+  return false;
 }
 
-/**
- * Server-side check — call before allowing a generation.
- * Hits the persistent Render backend (not Vercel serverless).
- * Falls back to client-side if the server is unreachable.
- */
-export async function canGenerateServer(): Promise<boolean> {
-  // Fast client check first
-  if (isWaitlisted()) return true;
+// ── Generation counting (on persistent Render backend) ───────────────────
 
+/**
+ * Check if this email can still generate (has remaining generations).
+ */
+export async function canGenerate(email: string): Promise<boolean> {
   try {
-    const fp = generateFingerprint();
     const res = await fetch(`${BACKEND_URL}/gate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'check', fingerprint: fp }),
+      body: JSON.stringify({ action: 'check', email }),
     });
     if (res.ok) {
       const data = await res.json();
       return data.allowed;
     }
   } catch { /* server unreachable */ }
+  return false;
+}
 
-  return canGenerate();
+/**
+ * Increment generation count for this email.
+ * Call when a generation completes successfully.
+ */
+export async function incrementGenerationCount(email: string): Promise<{ allowed: boolean }> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/gate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'increment', email }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return { allowed: data.allowed };
+    }
+  } catch { /* server unreachable */ }
+  return { allowed: false };
 }
 
 // ── UTM param capture ────────────────────────────────────────────────────
@@ -173,7 +90,6 @@ export interface UtmParams {
 /** Call once on page load to capture UTM params from the URL. */
 export function captureUtmParams(): void {
   if (typeof window === 'undefined') return;
-  // Don't overwrite if already captured this session
   if (sessionStorage.getItem(UTM_KEY)) return;
 
   const p = new URLSearchParams(window.location.search);
@@ -186,7 +102,6 @@ export function captureUtmParams(): void {
     referrer: document.referrer ?? '',
   };
 
-  // Infer source from referrer if no UTM params
   if (!utm.utm_source && utm.referrer) {
     try {
       const host = new URL(utm.referrer).hostname.replace('www.', '');
