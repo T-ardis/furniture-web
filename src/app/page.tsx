@@ -16,7 +16,7 @@ import { useToast } from '@/components/Toast/ToastProvider';
 import useGeneration from '@/hooks/useGeneration';
 import { imageToBase64, urlToBase64 } from '@/lib/api';
 import { addToHistory, type HistoryItem } from '@/lib/history';
-import { getStoredEmail, canGenerate, incrementGenerationCount, captureUtmParams } from '@/lib/gate';
+import { getStoredEmail, storeEmail, checkEmailInWaitlist, canGenerate, incrementGenerationCount, captureUtmParams } from '@/lib/gate';
 import styles from './page.module.css';
 
 export default function Home() {
@@ -26,13 +26,37 @@ export default function Home() {
   // Capture UTM params from URL on first load
   useEffect(() => { captureUtmParams(); }, []);
 
-  // Auth state — email from localStorage
+  // Auth state — email from localStorage or URL param
   const [authedEmail, setAuthedEmail] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    setAuthedEmail(getStoredEmail());
-    setAuthChecked(true);
+    const stored = getStoredEmail();
+    if (stored) {
+      setAuthedEmail(stored);
+      setAuthChecked(true);
+      return;
+    }
+
+    // Check URL param (redirect from landing after waitlist signup)
+    const params = new URLSearchParams(window.location.search);
+    const emailParam = params.get('email');
+    if (emailParam) {
+      // Verify it's actually in the waitlist, then auto-auth
+      checkEmailInWaitlist(emailParam).then((found) => {
+        if (found) {
+          storeEmail(emailParam);
+          setAuthedEmail(emailParam);
+          // Clean up URL
+          const url = new URL(window.location.href);
+          url.searchParams.delete('email');
+          window.history.replaceState({}, '', url.pathname);
+        }
+        setAuthChecked(true);
+      });
+    } else {
+      setAuthChecked(true);
+    }
   }, []);
 
   const [product, setProduct] = useState<ProductInput | null>(null);
