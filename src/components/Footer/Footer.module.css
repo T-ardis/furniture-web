@@ -1,0 +1,41 @@
+.footer {
+  background: var(--bg-void);
+  border-top: 1px solid var(--border-subtle);
+  padding: 2rem var(--container-px);
+}
+
+.inner {
+  max-width: var(--max-w);
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.brand {
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.copy {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.email {
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  transition: opacity 0.2s;
+}
+
+.email:hover { opacity: 0.7; }
+
+@media (max-width: 480px) {
+  .inner { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+}

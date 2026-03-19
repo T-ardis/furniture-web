@@ -1,0 +1,255 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Nav from '@/components/Nav/Nav';
+import UrlInput, { type ProductInput } from '@/components/UrlInput/UrlInput';
+import ProductCard from '@/components/ProductCard/ProductCard';
+import GenerationStatus from '@/components/GenerationStatus/GenerationStatus';
+import ModelViewer from '@/components/ModelViewer/ModelViewer';
+import RoomPreview from '@/components/RoomPreview/RoomPreview';
+import SimilarItems from '@/components/SimilarItems/SimilarItems';
+import History from '@/components/History/History';
+import ShareModal from '@/components/ShareModal/ShareModal';
+import WaitlistGate from '@/components/WaitlistGate/WaitlistGate';
+import Footer from '@/components/Footer/Footer';
+import { useToast } from '@/components/Toast/ToastProvider';
+import useGeneration from '@/hooks/useGeneration';
+import { imageToBase64, urlToBase64 } from '@/lib/api';
+import { addToHistory, type HistoryItem } from '@/lib/history';
+import { canGenerate, canGenerateServer, incrementGenerationCount, captureUtmParams } from '@/lib/gate';
+import styles from './page.module.css';
+
+export default function Home() {
+  const gen = useGeneration();
+  const { success, error: showError, info } = useToast();
+
+  // Capture UTM params from URL on first load
+  useEffect(() => { captureUtmParams(); }, []);
+
+  const [product, setProduct] = useState<ProductInput | null>(null);
+  const [productBase64, setProductBase64] = useState<string | null>(null);
+  const [showShare, setShowShare] = useState(false);
+  const [showGate, setShowGate] = useState(false);
+
+  // Refs for smooth scrolling to sections
+  const productRef = useRef<HTMLDivElement>(null);
+  const modelRef = useRef<HTMLDivElement>(null);
+
+  const handleSubmit = useCallback(async (input: ProductInput) => {
+    // Fast client check, then verify with server (IP-based)
+    if (!canGenerate()) {
+      setShowGate(true);
+      return;
+    }
+    const serverAllowed = await canGenerateServer();
+    if (!serverAllowed) {
+      setShowGate(true);
+      return;
+    }
+
+    setProduct(input);
+    gen.reset();
+
+    // Scroll to product card
+    setTimeout(() => {
+      productRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+
+    // Convert image to base64 and start generation
+    try {
+      let b64: string;
+      if (input.imageFile) {
+        b64 = await imageToBase64(input.imageFile, 512);
+      } else {
+        b64 = await urlToBase64(input.imagePreviewUrl, 512);
+      }
+      setProductBase64(b64);
+      info('Starting 3D generation...');
+      gen.generate(b64);
+    } catch {
+      showError('Failed to process image. Please try again.');
+    }
+  }, [gen, info, showError]);
+
+  const handleHistorySelect = useCallback(async (item: HistoryItem) => {
+    const input: ProductInput = {
+      name: item.name,
+      category: item.category,
+      widthCm: item.widthCm,
+      heightCm: item.heightCm,
+      depthCm: item.depthCm,
+      imageFile: new File([], 'history'), // placeholder
+      imagePreviewUrl: item.imageDataUrl,
+    };
+    setProduct(input);
+    setProductBase64(item.imageDataUrl.split(',')[1] || '');
+    gen.reset();
+
+    // For history items, we already have a taskId — try to download directly
+    // or the user will need to re-generate
+    setTimeout(() => {
+      productRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }, [gen]);
+
+  // Save to history when model is ready
+  if (gen.phase === 'ready' && gen.taskId && product && productBase64) {
+    // Create a small data URL from the preview for history
+    const historyItem: HistoryItem = {
+      id: gen.taskId,
+      name: product.name,
+      category: product.category,
+      widthCm: product.widthCm,
+      heightCm: product.heightCm,
+      depthCm: product.depthCm,
+      imageDataUrl: product.imagePreviewUrl,
+      taskId: gen.taskId,
+      createdAt: new Date().toISOString(),
+    };
+    addToHistory(historyItem);
+  }
+
+  // Toast + scroll on phase transitions
+  const prevPhaseRef = useRef(gen.phase);
+  useEffect(() => {
+    if (prevPhaseRef.current === gen.phase) return;
+    const prev = prevPhaseRef.current;
+    prevPhaseRef.current = gen.phase;
+
+    if (gen.phase === 'ready' && prev !== 'ready') {
+      incrementGenerationCount();
+      success('3D model ready! Drag to rotate, pinch to zoom.');
+      setTimeout(() => {
+        modelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
+    if (gen.phase === 'failed' && prev !== 'failed') {
+      showError(gen.error || 'Generation failed. Please try again.');
+    }
+  }, [gen.phase, gen.error, success, showError]);
+
+  const isGenerating = gen.phase !== 'idle' && gen.phase !== 'ready' && gen.phase !== 'failed';
+
+  return (
+    <>
+      <Nav />
+      <main>
+        {/* Hero + Input */}
+        <UrlInput onSubmit={handleSubmit} disabled={isGenerating} />
+
+        {/* History */}
+        {!product && (
+          <div className={styles.historyWrap}>
+            <History onSelect={handleHistorySelect} />
+          </div>
+        )}
+
+        {/* Product Card */}
+        {product && (
+          <div ref={productRef}>
+            <ProductCard
+              name={product.name}
+              category={product.category}
+              widthCm={product.widthCm}
+              heightCm={product.heightCm}
+              depthCm={product.depthCm}
+              imagePreviewUrl={product.imagePreviewUrl}
+            />
+          </div>
+        )}
+
+        {/* Generation Status */}
+        {product && gen.phase !== 'idle' && gen.phase !== 'ready' && (
+          <div className={styles.statusWrap}>
+            <div className={styles.statusInner}>
+              <GenerationStatus
+                phase={gen.phase}
+                progress={gen.progress}
+                error={gen.error}
+                onRetry={productBase64 ? () => gen.generate(productBase64) : undefined}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 3D Model Viewer + AR */}
+        {gen.phase === 'ready' && gen.modelBlobUrl && (
+          <div ref={modelRef}>
+            <ModelViewer
+              src={gen.modelBlobUrl}
+              iosSrc={gen.usdzUrl || undefined}
+              poster={product?.imagePreviewUrl}
+              productName={product?.name}
+            />
+
+            {/* Share button */}
+            <div className={styles.shareWrap}>
+              <div className={styles.shareInner}>
+                <button className={styles.shareBtn} onClick={() => setShowShare(true)}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                  </svg>
+                  Share This Model
+                </button>
+                <button
+                  className={styles.newBtn}
+                  onClick={async () => {
+                    if (!canGenerate() || !(await canGenerateServer())) {
+                      setShowGate(true);
+                      return;
+                    }
+                    setProduct(null); setProductBase64(null); gen.reset(); window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                >
+                  Generate Another
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Room Preview (available once we have a product image) */}
+        {product && productBase64 && (gen.phase === 'generating' || gen.phase === 'ready') && (
+          <RoomPreview
+            productImageBase64={productBase64}
+            productName={product.name}
+          />
+        )}
+
+        {/* Similar Items (available during generation or after) */}
+        {product && productBase64 && (gen.phase === 'generating' || gen.phase === 'downloading' || gen.phase === 'ready') && (
+          <SimilarItems
+            productImageBase64={productBase64}
+            productName={product.name}
+            productCategory={product.category}
+          />
+        )}
+      </main>
+      <Footer />
+
+      {/* Share Modal */}
+      {showShare && gen.taskId && product && (
+        <ShareModal
+          taskId={gen.taskId}
+          productName={product.name}
+          onClose={() => setShowShare(false)}
+        />
+      )}
+
+      {/* Waitlist Gate */}
+      {showGate && (
+        <WaitlistGate
+          onClose={() => setShowGate(false)}
+          onJoined={() => {
+            setShowGate(false);
+            success('Welcome! You now have unlimited generations.');
+          }}
+        />
+      )}
+    </>
+  );
+}

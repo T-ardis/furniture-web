@@ -1,0 +1,91 @@
+.nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 300;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem var(--container-px);
+  transition:
+    background      0.4s ease,
+    backdrop-filter 0.4s ease,
+    padding         0.3s ease,
+    transform       0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scrolled {
+  background: rgba(8, 8, 8, 0.88);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  padding-block: 0.85rem;
+}
+
+.hidden { transform: translateY(-100%); }
+
+.logoLink {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.logo {
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.logoSub {
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ctaBtn {
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid rgba(200, 169, 126, 0.35);
+  padding: 0.5rem 1.25rem;
+  transition: background 0.22s, border-color 0.22s;
+  white-space: nowrap;
+}
+
+.ctaBtn:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+
+@media (max-width: 480px) {
+  .nav {
+    padding: 0.85rem var(--container-px);
+  }
+
+  .scrolled {
+    padding-block: 0.65rem;
+  }
+
+  .logoSub {
+    display: none;
+  }
+
+  .ctaBtn {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.625rem;
+  }
+}
