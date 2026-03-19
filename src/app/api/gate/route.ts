@@ -2,15 +2,15 @@ import { Client } from '@notionhq/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
-const DB_ID = process.env.NOTION_DATABASE_ID!;
 
 /**
  * POST /api/gate
  *
- * { action: "check", email: "user@example.com" }
+ * { email: "user@example.com" }
  *   → { found: true/false }
  *
- * Checks whether the email exists in the Notion waitlist database.
+ * Checks whether the email exists in the Notion waitlist database
+ * using the search API (compatible with Notion SDK v5).
  */
 export async function POST(req: NextRequest) {
   const { email } = await req.json();
@@ -20,16 +20,22 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await notion.dataSources.query({
-      data_source_id: DB_ID,
-      filter: {
-        property: 'Email',
-        title: { equals: email.toLowerCase().trim() },
-      },
-      page_size: 1,
+    const result = await notion.search({
+      query: email.toLowerCase().trim(),
+      filter: { property: 'object', value: 'page' },
+      page_size: 5,
     });
 
-    return NextResponse.json({ found: result.results.length > 0 });
+    // Check if any result has an exact email match in the title
+    const found = result.results.some((page) => {
+      const props = (page as Record<string, unknown>)['properties'] as Record<string, unknown> | undefined;
+      if (!props?.Email) return false;
+      const title = props.Email as { title?: Array<{ text?: { content?: string } }> };
+      const value = title.title?.[0]?.text?.content?.toLowerCase().trim();
+      return value === email.toLowerCase().trim();
+    });
+
+    return NextResponse.json({ found });
   } catch (err) {
     console.error('Notion query error:', err);
     return NextResponse.json({ found: false, error: 'Failed to check' }, { status: 500 });
