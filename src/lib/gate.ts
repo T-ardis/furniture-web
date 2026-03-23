@@ -76,6 +76,34 @@ export async function incrementGenerationCount(email: string): Promise<{ allowed
   return { allowed: false };
 }
 
+// ── Auto-signup (demo gate flow) ─────────────────────────────────────────
+
+/**
+ * Auto-add email to Notion waitlist via /api/waitlist.
+ * Used when a new user enters their email through the demo gate.
+ */
+export async function autoSignupEmail(email: string): Promise<boolean> {
+  try {
+    const utm = getUtmParams();
+    const res = await fetch('/api/waitlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: email.toLowerCase().trim(),
+        utm_source: utm.utm_source || 'furniture-web',
+        utm_medium: 'demo-gate',
+        utm_campaign: utm.utm_campaign,
+        utm_term: utm.utm_term,
+        utm_content: utm.utm_content,
+        referrer: utm.referrer,
+      }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 // ── UTM param capture ────────────────────────────────────────────────────
 
 export interface UtmParams {

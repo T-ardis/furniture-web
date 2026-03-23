@@ -6,3 +6,4 @@ out
 dist
 *.tsbuildinfo
 .vercel
+public/demo/*.py

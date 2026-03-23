@@ -8,9 +8,11 @@ interface Props {
   iosSrc?: string;
   poster?: string;
   productName?: string;
+  eyebrow?: string;
+  headline?: string;
 }
 
-export default function ModelViewer({ src, iosSrc, poster, productName }: Props) {
+export default function ModelViewer({ src, iosSrc, poster, productName, eyebrow = '3D Preview', headline = 'Your model is <em>ready.</em>' }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [arSupported, setArSupported] = useState(false);
@@ -52,10 +54,8 @@ export default function ModelViewer({ src, iosSrc, poster, productName }: Props)
   return (
     <section className={styles.section}>
       <div className={styles.inner}>
-        <span className={styles.eyebrow}>3D Preview</span>
-        <h2 className={styles.headline}>
-          Your model is <em>ready.</em>
-        </h2>
+        <span className={styles.eyebrow}>{eyebrow}</span>
+        <h2 className={styles.headline} dangerouslySetInnerHTML={{ __html: headline }} />
 
         <div ref={containerRef} className={styles.viewerWrap}>
           {!loaded && (

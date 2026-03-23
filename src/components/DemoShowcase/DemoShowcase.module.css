@@ -1,0 +1,129 @@
+.wrapper {
+  position: relative;
+}
+
+/* ── Section header ── */
+
+.header {
+  background: var(--bg-void);
+  padding: var(--section-py) var(--container-px) 2rem;
+  text-align: center;
+  max-width: var(--max-w);
+  margin-inline: auto;
+}
+
+.eyebrow {
+  display: block;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
+
+.headline {
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+.headline em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.sub {
+  margin-top: 1rem;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 520px;
+  margin-inline: auto;
+}
+
+/* ── Demo badge ── */
+
+.demoBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  font-size: var(--text-xs);
+  color: var(--accent);
+  background: var(--accent-dim);
+  max-width: fit-content;
+  margin: 1rem auto 0;
+  letter-spacing: 0.04em;
+}
+
+.demoBadge svg {
+  flex-shrink: 0;
+}
+
+/* ── Inline CTA ── */
+
+.ctaBlock {
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-subtle);
+  padding: 3rem var(--container-px);
+  text-align: center;
+}
+
+.ctaTitle {
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ctaSub {
+  margin-top: 0.5rem;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.ctaSub em {
+  font-style: italic;
+  color: var(--text-primary);
+}
+
+.ctaBtn {
+  margin-top: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 2.5rem;
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--accent);
+  color: #0a0a0a;
+  transition: background 0.22s;
+}
+
+.ctaBtn:hover {
+  background: var(--accent-hover);
+}
+
+/* ── Mobile ── */
+
+@media (max-width: 480px) {
+  .header {
+    padding-inline: 1.25rem;
+  }
+
+  .ctaBlock {
+    padding: 2.5rem 1.25rem;
+  }
+
+  .ctaBtn {
+    width: 100%;
+  }
+}

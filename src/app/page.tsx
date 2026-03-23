@@ -10,7 +10,8 @@ import RoomPreview from '@/components/RoomPreview/RoomPreview';
 import SimilarItems from '@/components/SimilarItems/SimilarItems';
 import History from '@/components/History/History';
 import ShareModal from '@/components/ShareModal/ShareModal';
-import WaitlistGate from '@/components/WaitlistGate/WaitlistGate';
+import DemoShowcase from '@/components/DemoShowcase/DemoShowcase';
+import EmailGate from '@/components/EmailGate/EmailGate';
 import Footer from '@/components/Footer/Footer';
 import { useToast } from '@/components/Toast/ToastProvider';
 import useGeneration from '@/hooks/useGeneration';
@@ -63,13 +64,22 @@ export default function Home() {
   const [productBase64, setProductBase64] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
+  const [showEmailGateModal, setShowEmailGateModal] = useState(false);
+
+  // Store pending input when user tries to generate without auth
+  const pendingInputRef = useRef<ProductInput | null>(null);
 
   // Refs for smooth scrolling to sections
   const productRef = useRef<HTMLDivElement>(null);
   const modelRef = useRef<HTMLDivElement>(null);
 
   const handleSubmit = useCallback(async (input: ProductInput) => {
-    if (!authedEmail) return;
+    // If not authenticated, store input and show email gate
+    if (!authedEmail) {
+      pendingInputRef.current = input;
+      setShowEmailGateModal(true);
+      return;
+    }
 
     // Check generation limit on backend
     const allowed = await canGenerate(authedEmail);
@@ -99,6 +109,20 @@ export default function Home() {
       showError('Failed to process image. Please try again.');
     }
   }, [authedEmail, gen, info, showError]);
+
+  const handleAuth = useCallback((email: string) => {
+    setAuthedEmail(email);
+    setShowEmailGateModal(false);
+  }, []);
+
+  // After auth, auto-fire pending submission if one exists
+  useEffect(() => {
+    if (authedEmail && pendingInputRef.current) {
+      const pending = pendingInputRef.current;
+      pendingInputRef.current = null;
+      handleSubmit(pending);
+    }
+  }, [authedEmail, handleSubmit]);
 
   const handleHistorySelect = useCallback(async (item: HistoryItem) => {
     const input: ProductInput = {
@@ -159,17 +183,6 @@ export default function Home() {
   // Show nothing until we check localStorage
   if (!authChecked) return null;
 
-  // Not authenticated — show email gate
-  if (!authedEmail) {
-    return (
-      <>
-        <Nav />
-        <WaitlistGate onAuthed={(email) => setAuthedEmail(email)} />
-        <Footer />
-      </>
-    );
-  }
-
   return (
     <>
       <Nav />
@@ -177,8 +190,13 @@ export default function Home() {
         {/* Hero + Input */}
         <UrlInput onSubmit={handleSubmit} disabled={isGenerating} />
 
-        {/* History */}
-        {!product && (
+        {/* Demo showcase — unauthenticated users with no active generation */}
+        {!authedEmail && !product && (
+          <DemoShowcase onTryOwn={() => setShowEmailGateModal(true)} />
+        )}
+
+        {/* History — authenticated users only */}
+        {authedEmail && !product && (
           <div className={styles.historyWrap}>
             <History onSelect={handleHistorySelect} />
           </div>
@@ -241,6 +259,7 @@ export default function Home() {
                   <button
                     className={styles.newBtn}
                     onClick={async () => {
+                      if (!authedEmail) return;
                       const allowed = await canGenerate(authedEmail);
                       if (!allowed) {
                         setLimitReached(true);
@@ -275,6 +294,15 @@ export default function Home() {
         )}
       </main>
       <Footer />
+
+      {/* Email gate modal — shown when unauthenticated user tries to generate */}
+      {showEmailGateModal && !authedEmail && (
+        <EmailGate
+          mode="modal"
+          onAuthed={handleAuth}
+          onClose={() => setShowEmailGateModal(false)}
+        />
+      )}
 
       {/* Share Modal */}
       {showShare && gen.taskId && product && (
