@@ -77,6 +77,10 @@ export const metadata: Metadata = {
       'AI-powered furniture visualizer. Upload a photo → get a 3D model → place it in your room with AR. Free, no app needed.',
     images: ['/og.png'],
   },
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+  },
   robots: {
     index: true,
     follow: true,
