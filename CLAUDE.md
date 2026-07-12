@@ -8,6 +8,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 It is a Next.js app, but **not** purely frontend: it has a real server-side BFF layer (`src/app/api/*`) that does scraping, secret injection, and Notion lead capture. Heavy AI work (3D generation, room compositing, similar-item search) lives in the separate **tardis backend** at `../tardis/backend/` (FastAPI, shared with iOS), which furniture-web calls over HTTP.
 
+## TARDIS system map & direction
+
+**Direction (2026-07):** TARDIS is pivoting from a B2C "paste a URL → AI 3D model → AR in your room" web app into a **B2B embeddable AR layer** — a retailer drops one `<script>` on their product page and a shopper taps a button to see the item in their space (a generated 3D model for furniture, or live in-camera AR for wall coverings). **In that pivot, THIS repo (`furniture-web`) is being repurposed from the consumer product into the demo / sales site** — the thing you show a retail partner to close them. Treat the consumer flow documented below as the demo surface, not the end product. See `B2B_DIRECTION.md` and `BACKEND_SCALE_DESIGN.md` in this repo for the full plan.
+
+All repos live in the GitHub org **T-ardis** (https://github.com/T-ardis). How the pieces fit:
+
+| Repo | Role | Relation to furniture-web |
+|------|------|---------------------------|
+| `tardis` | Monorepo: Python/FastAPI **generation backend** (Hunyuan3D on Modal GPU; room preview via Fal; similar-items via TinyFish) + native iOS **Vastra** app (Swift, ARKit/LiDAR/Metal — the source of the premium AR App Clip). | The backend this app calls over HTTP (`NEXT_PUBLIC_API_URL`, checked out locally as `../tardis`). See the "Backend API contract" section. |
+| `furniture-web` | **This repo.** Original B2C consumer web app → becoming the **demo / sales site**. | — |
+| `landing-web` | Marketing landing site. | Sibling repo (`../landing-web`); shares the pre-rebrand design tokens, feeds `?email=` signups into this app's auto-auth. No shared package. |
+| `tardis-embed` | The single-`<script>` **embeddable 3D/AR widget** dropped onto a retailer PDP (tiny loader + sandboxed Shadow-DOM viewer). | The productized shopper-facing surface the B2C flow here becomes. |
+| `tardis-edge` | GCP-native **data-plane**: Cloud Run "resolver" (SKU → model URLs, origin-scoped by publishable key, Firestore-backed) + "collector" (fire-and-forget AR analytics → Pub/Sub → BigQuery). | What the embed reads from at scale instead of hitting the generation backend directly. |
+| `tardis-admin` | Next.js B2B **control-plane** dashboard: tenants, product→model catalog, credits/billing, embed config, analytics. | Where clients manage the catalog/keys/billing that back the embed. |
+
+**Architecture principle:** two hard-separated planes — the **shopper hot-path** (embed + edge + CDN-cached assets; static / edge-cached / on-device) vs the **client control-plane** (admin + generation + Postgres/Firestore; low QPS). A shopper action must never touch Postgres or the GPU.
+
 ## Tech Stack
 
 - **Framework**: Next.js 16 (App Router), React 19, TypeScript strict
