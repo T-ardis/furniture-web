@@ -7,3 +7,6 @@ dist
 *.tsbuildinfo
 .vercel
 public/demo/*.py
+
+# Claude Code -- personal settings only (shared .claude/ config stays tracked)
+.claude/settings.local.json
