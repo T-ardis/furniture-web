@@ -292,7 +292,12 @@ export function createPinnedLookup(addresses: ResolvedAddress[]): ConnectLookup 
 const defaultDispatcherFactory: DispatcherFactory = (addresses) =>
   new Agent({ connect: { lookup: createPinnedLookup(addresses) as never } });
 
-async function readCapped(res: Response, maxBytes: number): Promise<Buffer> {
+/**
+ * Read a Response body into a Buffer, aborting if it exceeds `maxBytes`.
+ * Exported so trusted-backend proxies (which skip the SSRF checks) can still
+ * bound the amount of data they buffer.
+ */
+export async function readCapped(res: Response, maxBytes: number): Promise<Buffer> {
   if (!res.body) {
     const buf = Buffer.from(await res.arrayBuffer());
     if (buf.length > maxBytes) throw new SsrfError('The response is too large');
