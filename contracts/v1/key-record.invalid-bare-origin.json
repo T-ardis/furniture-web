@@ -1,0 +1,5 @@
+{
+  "key": "pk_live_fixture",
+  "orgId": "org_fixture",
+  "allowedOrigins": ["shop.example.com"]
+}

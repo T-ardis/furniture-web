@@ -1,0 +1,9 @@
+{
+  "eventId": "8ea271d7-bad8-4e53-9bb8-5af52e329d23",
+  "key": "pk_live_fixture",
+  "orgId": "org_fixture",
+  "product": "chair-001",
+  "type": "click",
+  "ts": 1783936800.0,
+  "origin": "https://shop.example.com"
+}

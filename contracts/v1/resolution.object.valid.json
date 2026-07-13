@@ -1,0 +1,9 @@
+{
+  "productId": "chair-001",
+  "orgId": "org_fixture",
+  "name": "Oak Lounge Chair",
+  "mode": "object",
+  "modelUrl": "https://cdn.example.com/org_fixture/chair-001/v1/model.glb",
+  "usdzUrl": "https://cdn.example.com/org_fixture/chair-001/v1/model.usdz",
+  "posterUrl": "https://cdn.example.com/org_fixture/chair-001/v1/poster.webp"
+}

@@ -1,0 +1,10 @@
+{
+  "productId": "wallpaper-001",
+  "orgId": "org_fixture",
+  "name": "Sage Trellis Wallpaper",
+  "mode": "surface",
+  "surfaces": [
+    {"id": "sage", "label": "Sage", "kind": "color", "color": "#aabb99"}
+  ],
+  "defaultSurfaceId": "missing"
+}

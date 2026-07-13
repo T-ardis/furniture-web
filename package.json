@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "contracts:verify": "node scripts/verify-workspace-contracts.mjs"
   },
   "dependencies": {
     "@google/model-viewer": "^4.1.0",

@@ -1,0 +1,9 @@
+{
+  "key": "pk_live_fixture",
+  "orgId": "org_fixture",
+  "allowedOrigins": [
+    "https://shop.example.com",
+    "https://*.preview.example.com",
+    "http://localhost:3000"
+  ]
+}
