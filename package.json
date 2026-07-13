@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "contracts:verify": "node scripts/verify-workspace-contracts.mjs"
+    "contracts:verify": "node scripts/verify-workspace-contracts.mjs",
+    "scenario:verify": "node scripts/verify-workspace-scenario.mjs"
   },
   "dependencies": {
     "@google/model-viewer": "^4.1.0",
