@@ -1,4 +1,5 @@
 import { lookup as nodeLookup } from 'node:dns/promises';
+import { Agent } from 'undici';
 
 /**
  * Reusable SSRF / URL-safety policy for server-side fetches.
@@ -195,7 +196,31 @@ export function isBlockedAddress(ip: string): boolean {
 
 // ── Guarded fetch ──────────────────────────────────────────────────────────
 
-export type DnsLookup = (hostname: string) => Promise<Array<{ address: string; family: number }>>;
+export interface ResolvedAddress {
+  address: string;
+  family: number;
+}
+
+export type DnsLookup = (hostname: string) => Promise<ResolvedAddress[]>;
+
+/**
+ * A node/undici-style connect lookup: `lookup(hostname, options, callback)`,
+ * where `callback` is `(err, address, family)` or, when `options.all` is set,
+ * `(err, [{ address, family }])`.
+ */
+export type ConnectLookupCallback = (
+  err: Error | null,
+  address?: string | ResolvedAddress[],
+  family?: number,
+) => void;
+export type ConnectLookup = (
+  hostname: string,
+  options: { all?: boolean },
+  callback: ConnectLookupCallback,
+) => void;
+
+/** Builds the dispatcher that pins a fetch's connection to the vetted IPs. */
+export type DispatcherFactory = (addresses: ResolvedAddress[], hostname: string) => unknown;
 
 export interface SafeFetchOptions {
   method?: string;
@@ -209,6 +234,8 @@ export interface SafeFetchOptions {
   allowedContentTypes?: string[];
   lookup?: DnsLookup;
   fetchImpl?: typeof fetch;
+  /** Overridable for tests; defaults to a connection-pinning undici Agent. */
+  dispatcherFactory?: DispatcherFactory;
 }
 
 export interface SafeFetchResult {
@@ -220,10 +247,11 @@ export interface SafeFetchResult {
 }
 
 const defaultLookup: DnsLookup = (hostname) =>
-  nodeLookup(hostname, { all: true }) as Promise<Array<{ address: string; family: number }>>;
+  nodeLookup(hostname, { all: true }) as Promise<ResolvedAddress[]>;
 
-async function guardHost(host: string, lookup: DnsLookup): Promise<void> {
-  let addrs: Array<{ address: string; family: number }>;
+/** Resolve a host and reject if ANY resolved address is disallowed; returns the vetted set. */
+async function guardHost(host: string, lookup: DnsLookup): Promise<ResolvedAddress[]> {
+  let addrs: ResolvedAddress[];
   try {
     addrs = await lookup(host);
   } catch {
@@ -235,7 +263,34 @@ async function guardHost(host: string, lookup: DnsLookup): Promise<void> {
       throw new SsrfError('The host resolves to a disallowed address');
     }
   }
+  return addrs;
 }
+
+/**
+ * Build a connect-time lookup that ALWAYS returns the pre-vetted address(es),
+ * ignoring the hostname it is called with. This is what defeats DNS rebinding:
+ * `guardHost` validated these exact IPs, and this pins the socket to them so
+ * undici cannot re-resolve to a fresh (possibly blocked) address at connect
+ * time. It also re-checks the addresses as belt-and-suspenders before dialing.
+ */
+export function createPinnedLookup(addresses: ResolvedAddress[]): ConnectLookup {
+  return (_hostname, options, callback) => {
+    for (const a of addresses) {
+      if (isBlockedAddress(a.address)) {
+        callback(new SsrfError('The host resolves to a disallowed address'));
+        return;
+      }
+    }
+    if (options && options.all) {
+      callback(null, addresses.map((a) => ({ address: a.address, family: a.family })));
+    } else {
+      callback(null, addresses[0].address, addresses[0].family);
+    }
+  };
+}
+
+const defaultDispatcherFactory: DispatcherFactory = (addresses) =>
+  new Agent({ connect: { lookup: createPinnedLookup(addresses) as never } });
 
 async function readCapped(res: Response, maxBytes: number): Promise<Buffer> {
   if (!res.body) {
@@ -276,8 +331,26 @@ export async function safeFetch(rawUrl: string, opts: SafeFetchOptions = {}): Pr
   const maxBytes = opts.maxBytes ?? 10 * 1024 * 1024;
   const lookup = opts.lookup ?? defaultLookup;
   const doFetch = opts.fetchImpl ?? fetch;
+  const dispatcherFactory = opts.dispatcherFactory ?? defaultDispatcherFactory;
   const deadline = Date.now() + totalTimeoutMs;
+  const dispatchers: unknown[] = [];
 
+  try {
+    return await runHops();
+  } finally {
+    for (const d of dispatchers) {
+      const closable = d as { close?: () => unknown };
+      if (closable && typeof closable.close === 'function') {
+        try {
+          await closable.close();
+        } catch {
+          /* best-effort cleanup */
+        }
+      }
+    }
+  }
+
+  async function runHops(): Promise<SafeFetchResult> {
   let current = normalizeUrl(rawUrl);
   const visited = new Set<string>([current.toString()]);
 
@@ -287,22 +360,30 @@ export async function safeFetch(rawUrl: string, opts: SafeFetchOptions = {}): Pr
     if (current.username || current.password) throw new SsrfError('URLs with embedded credentials are not allowed');
 
     // Re-resolve DNS and guard the resolved IPs for THIS hop.
-    await guardHost(stripBrackets(current.hostname), lookup);
+    const hostname = stripBrackets(current.hostname);
+    const vetted = await guardHost(hostname, lookup);
 
     const remaining = deadline - Date.now();
     if (remaining <= 0) throw new SsrfError('The request timed out');
+
+    // Pin the connection to the exact IP(s) we just validated so undici cannot
+    // re-resolve (and rebind) the hostname at connect time.
+    const dispatcher = dispatcherFactory(vetted, hostname);
+    if (dispatcher) dispatchers.push(dispatcher);
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), Math.min(perHopTimeoutMs, remaining));
     let res: Response;
     try {
-      res = await doFetch(current.toString(), {
+      const init: RequestInit & { dispatcher?: unknown } = {
         method: opts.method ?? 'GET',
         headers: opts.headers,
         body: opts.body,
         redirect: 'manual',
         signal: controller.signal,
-      });
+        dispatcher,
+      };
+      res = await doFetch(current.toString(), init as RequestInit);
     } catch {
       if (controller.signal.aborted) throw new SsrfError('The request timed out');
       throw new SsrfError('Unable to fetch the requested URL');
@@ -354,4 +435,5 @@ export async function safeFetch(rawUrl: string, opts: SafeFetchOptions = {}): Pr
   }
 
   throw new SsrfError('Too many redirects');
+  }
 }

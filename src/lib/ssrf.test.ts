@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { normalizeUrl, isBlockedAddress, safeFetch, SsrfError } from './ssrf';
+import { normalizeUrl, isBlockedAddress, safeFetch, SsrfError, createPinnedLookup } from './ssrf';
 
 describe('normalizeUrl', () => {
   it('prepends https to a bare domain', () => {
@@ -211,5 +211,73 @@ describe('safeFetch — enforces response limits', () => {
     const result = await safeFetch('http://a.example.com/', { fetchImpl, lookup: lookup2 });
     expect(result.url).toContain('b.example.com/final');
     expect(result.body.toString('utf-8')).toBe('final');
+  });
+});
+
+// Helper: drive the node/undici-style lookup(hostname, options, callback) as a promise.
+function runLookup(
+  lookup: ReturnType<typeof createPinnedLookup>,
+  hostname: string,
+  options: { all?: boolean } = {},
+): Promise<{ address: string; family: number } | Array<{ address: string; family: number }>> {
+  return new Promise((resolve, reject) => {
+    lookup(hostname, options, (err: Error | null, address?: unknown, family?: number) => {
+      if (err) return reject(err);
+      if (Array.isArray(address)) return resolve(address as Array<{ address: string; family: number }>);
+      resolve({ address: address as string, family: family as number });
+    });
+  });
+}
+
+describe('createPinnedLookup — connect-level pin (anti DNS-rebinding)', () => {
+  it('returns the vetted address regardless of the hostname passed at connect', async () => {
+    const lookup = createPinnedLookup([{ address: '93.184.216.34', family: 4 }]);
+    // Even if the attacker rebinds this hostname, the connect uses the pinned IP.
+    await expect(runLookup(lookup, 'attacker-rebind.example.com')).resolves.toEqual({
+      address: '93.184.216.34',
+      family: 4,
+    });
+  });
+
+  it('supports the { all: true } form used by autoSelectFamily', async () => {
+    const lookup = createPinnedLookup([{ address: '2606:4700:4700::1111', family: 6 }]);
+    await expect(runLookup(lookup, 'x', { all: true })).resolves.toEqual([
+      { address: '2606:4700:4700::1111', family: 6 },
+    ]);
+  });
+
+  it('refuses to dial a blocked address (defense-in-depth revalidation)', async () => {
+    const lookup = createPinnedLookup([{ address: '169.254.169.254', family: 4 }]);
+    await expect(runLookup(lookup, 'metadata.example.com')).rejects.toBeInstanceOf(SsrfError);
+  });
+});
+
+describe('safeFetch — the checked address is the dialed address (TOCTOU / rebinding)', () => {
+  it('pins the exact IP guardHost validated into the dispatcher, ignoring later re-resolution', async () => {
+    // Rebinding resolver: a PUBLIC ip for the guard check, a BLOCKED ip afterwards.
+    let calls = 0;
+    const lookup = vi.fn(async () => {
+      calls += 1;
+      return calls === 1
+        ? [{ address: '93.184.216.34', family: 4 }] // vetted (public) — what guardHost sees
+        : [{ address: '169.254.169.254', family: 4 }]; // rebind to metadata
+    });
+
+    let pinned: Array<{ address: string; family: number }> | null = null;
+    const dispatcherFactory = vi.fn((addrs: Array<{ address: string; family: number }>) => {
+      pinned = addrs;
+      return { close: () => Promise.resolve() };
+    });
+    const fetchImpl = vi.fn(async () => okResponse('ok', 'text/html'));
+
+    const res = await safeFetch('http://rebind.example.com/', { lookup, fetchImpl, dispatcherFactory });
+
+    expect(res.status).toBe(200);
+    // The address handed to the connection layer is the one that was vetted — not the rebind.
+    expect(pinned).toEqual([{ address: '93.184.216.34', family: 4 }]);
+    // And that pinned dispatcher is the one actually used for the fetch.
+    expect(dispatcherFactory).toHaveBeenCalledTimes(1);
+    const init = fetchImpl.mock.calls[0][1] as { dispatcher?: unknown };
+    expect(init.dispatcher).toBe(dispatcherFactory.mock.results[0].value);
   });
 });
