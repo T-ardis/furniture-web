@@ -437,7 +437,10 @@ async function main() {
     }, adminH);
     const oldKey = await jget(`${RESOLVER}/resolve?product=sku-1&key=${keys.pkA}`, { Origin: ORIGIN });
     const newKey = await jget(`${RESOLVER}/resolve?product=sku-1&key=${keys.pkA2}`, { Origin: ORIGIN });
-    const ok = rot.status === 200 && oldKey.status !== 200 && newKey.status === 200;
+    // The revoked key must resolve to a clean 404 (deleted key file → unknown
+    // key → not found), not merely "not 200" — so a resolver 5xx/outage can't
+    // masquerade as a successful revocation.
+    const ok = rot.status === 200 && oldKey.status === 404 && newKey.status === 200;
     record(11, 'key rotation revokes old key at the edge (live, no TTL)', ok,
       `rotate=${rot.status} old=${oldKey.status} new=${newKey.status}`);
   }
