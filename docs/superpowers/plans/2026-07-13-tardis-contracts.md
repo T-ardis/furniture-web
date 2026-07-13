@@ -1310,13 +1310,13 @@ git commit -m "feat: add canonical TARDIS contracts"
 - Consumes: all local fixture and parser/serializer gates.
 - Produces: evidence that the first subproject is complete and safe for cloud/backend/admin/embed work.
 
-- [ ] **Step 1: Run fixture parity**
+- [x] **Step 1: Run fixture parity**
 
 Run: `cd furniture-web && npm run contracts:verify`
 
 Expected: `Verified 8 contract fixtures across 4 repositories.`
 
-- [ ] **Step 2: Run every affected contract gate**
+- [x] **Step 2: Run every affected contract gate**
 
 Run:
 
@@ -1329,7 +1329,7 @@ cd ../tardis-admin && npm test && npm run lint && npm run build
 
 Expected: every command exits 0; embed loader remains under the gzip budget.
 
-- [ ] **Step 3: Check all affected worktrees**
+- [x] **Step 3: Check all affected worktrees**
 
 Run:
 
