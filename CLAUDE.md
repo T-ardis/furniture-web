@@ -10,7 +10,7 @@ It is a Next.js app, but **not** purely frontend: it has a real server-side BFF 
 
 ## TARDIS system map & direction
 
-**Direction (2026-07):** TARDIS is pivoting from a B2C "paste a URL → AI 3D model → AR in your room" web app into a **B2B embeddable AR layer** — a retailer drops one `<script>` on their product page and a shopper taps a button to see the item in their space (a generated 3D model for furniture, or live in-camera AR for wall coverings). **In that pivot, THIS repo (`furniture-web`) is being repurposed from the consumer product into the demo / sales site** — the thing you show a retail partner to close them. Treat the consumer flow documented below as the demo surface, not the end product. See `B2B_DIRECTION.md` and `BACKEND_SCALE_DESIGN.md` in this repo for the full plan.
+**Direction (2026-07):** TARDIS is pivoting from a B2C "paste a URL → AI 3D model → AR in your room" web app into a **B2B embeddable AR layer** — a retailer drops one `<script>` on their product page and a shopper taps a button to see the item in their space (a generated 3D model for furniture, or live in-camera AR for wall coverings). **In that pivot, THIS repo (`furniture-web`) is being repurposed from the consumer product into the demo / sales site** — the thing you show a retail partner to close them. Treat the consumer flow documented below as the demo surface, not the end product. See `B2B_DIRECTION.md` and `BACKEND_SCALE_DESIGN.md` in this repo for the full plan. The B2B claim is demonstrated at **`/app/demo`** — a mock retailer PDP that installs the real `tardis-embed` loader via the canonical embed HTML contract (design §4), driven entirely by `NEXT_PUBLIC_TARDIS_*` config; when unconfigured it renders an honest "demo not configured" state instead of faking anything.
 
 All repos live in the GitHub org **T-ardis** (https://github.com/T-ardis). How the pieces fit:
 
@@ -68,7 +68,7 @@ These exist because work must happen server-side (CORS, secrets, or clients that
 
 - **`src/lib/api.ts`** — typed `fetch` client to the tardis backend (`generate` / `status` / `download` / `preview/room` / `research/similar` + SSE `research/similar/stream`) plus base64 resize utils. `headers()` injects `X-API-Key` (this replaces the never-built `useApi.ts` hook the old docs mentioned).
   - `getDownloadUrl(taskId, format)` is **asymmetric**: `usdz` → same-origin proxy `/api/download/...`; `glb`/default → raw backend URL. Do not assume both formats resolve the same way.
-  - `downloadModel` has a 3-tier fallback that sniffs the glTF magic bytes to verify a real GLB, retrying the no-format URL, then throwing. Its final error string mentions an internal ops command — keep such infra detail out of user-facing UI.
+  - `downloadModel` has a 3-tier fallback that sniffs the glTF magic bytes to verify a real GLB, retrying the no-format URL, then throwing a user-safe error (the old internal ops command has been removed — keep such infra detail out of user-facing UI).
   - `findSimilarStream` is a hand-rolled SSE reader over `fetch`+`ReadableStream` (not `EventSource`): parses `data:`, `event: done`, `event: error`. Fragile to server line-ordering changes.
 - **`src/lib/gate.ts`** — access-control + attribution: `checkEmailInWaitlist` / `autoSignupEmail` proxy through `/api/gate` + `/api/waitlist` (Notion); `canGenerate` / `incrementGenerationCount` call the backend `/gate` endpoint **directly** (no proxy, and note: they send NO `X-API-Key`). `captureUtmParams` persists UTM to `sessionStorage`. These fail **closed** — any network error silently blocks generation. Duplicates the `NEXT_PUBLIC_API_URL` fallback constant that also lives in `api.ts`.
 - **`src/lib/history.ts`** — localStorage generation history (key `tardis_furniture_history`, cap 20, dedupe-by-id). No backend. Selecting a history item shows the `ProductCard` but does NOT re-run generation (no cached model), so `ModelViewer` won't reappear.
@@ -120,11 +120,22 @@ There is also a `/rooms/*` router (multi-photo room reconstruction → `.spz` Ga
 
 ## Environment variables
 
+All env access goes through `src/lib/config.ts` (`getConfig()`), which gates the
+`localhost:8080` backend default to non-production and exposes `isBackendConfigured`
+/ `isDemoConfigured`. `.env.example` is the authoritative list.
+
 Client (`NEXT_PUBLIC_*`, exposed in the browser bundle):
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8080   # tardis backend base URL
+NEXT_PUBLIC_API_URL=http://localhost:8080   # tardis backend base URL (dev/test default only; unset in prod => feature disabled honestly)
 NEXT_PUBLIC_API_KEY=…                        # X-API-Key for backend calls
 NEXT_PUBLIC_LANDING_URL=https://www.tardis-ai.com  # only used by the orphaned WaitlistGate
+
+# B2B embed demo (/demo) — all five required or /demo shows an honest "not configured" state:
+NEXT_PUBLIC_TARDIS_WIDGET_URL=…              # real tardis-embed loader bundle URL
+NEXT_PUBLIC_TARDIS_EDGE_URL=…                # edge resolver base (GET /resolve, X-Tenant-Key)
+NEXT_PUBLIC_TARDIS_COLLECTOR_URL=…           # collector base (POST /events)
+NEXT_PUBLIC_TARDIS_KEY=pk_…                  # publishable, origin-scoped tenant key
+NEXT_PUBLIC_TARDIS_SAMPLE_PRODUCT=SKU-…      # a product SKU resolvable in edge for this key
 ```
 Server-only (used by BFF routes; never sent to the client):
 ```env
@@ -177,10 +188,11 @@ Design tokens live in `globals.css` as CSS custom properties. (Note: sibling lan
 npm run dev     # dev server (port 3000)
 npm run build   # production build
 npm run start   # production server
-npm run lint    # ESLint
+npm run lint    # ESLint (eslint-config-next native flat config)
+npm test        # Vitest (run once); npm run test:watch for watch mode
 ```
 
-**There is no test runner** — no jest/vitest, no test script, no `__tests__`. (Sibling landing-web does have Jest; if asked to add tests here, a harness must be bootstrapped from scratch.)
+**Tests run on Vitest** (node env, `src/**/*.test.ts`). Coverage includes the SSRF/URL policy (`src/lib/ssrf.test.ts`), config gating (`src/lib/config.test.ts`), the scrape/image-proxy BFF guards, the truthful download error, and the demo availability model.
 
 ## Do NOT
 
