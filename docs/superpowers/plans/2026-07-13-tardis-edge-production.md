@@ -17,7 +17,7 @@
 - Modify: `tardis-edge/shared/key_store.py`
 - Modify: `tardis-edge/shared/resolution_store.py`
 
-- [ ] **Step 1: Add failing fake-client tests**
+- [x] **Step 1: Add failing fake-client tests**
 
 Create small fake Firestore snapshot/document/collection/client classes in `tests/test_cloud_adapters.py`. The fake document supports `get()` and `set(data)`, and records the selected collection and document id.
 
@@ -54,13 +54,13 @@ def test_firestore_adapters_reject_missing_configuration(factory):
         factory(project="project", collection="")
 ```
 
-- [ ] **Step 2: Run the tests and confirm the skeleton fails**
+- [x] **Step 2: Run the tests and confirm the skeleton fails**
 
 Run: `pytest tests/test_cloud_adapters.py -q`
 
 Expected: FAIL because neither adapter accepts an injected client and both operational methods raise `NotImplementedError`.
 
-- [ ] **Step 3: Implement Firestore resolution reads/writes**
+- [x] **Step 3: Implement Firestore resolution reads/writes**
 
 In `shared/resolution_store.py`:
 
@@ -70,7 +70,7 @@ In `shared/resolution_store.py`:
 - `get()` returns `None` for a missing snapshot and otherwise parses `snapshot.to_dict()` through `Resolution.from_dict`.
 - `put()` validates/serializes through `resolution.to_dict()` and calls `.set(...)` on the composite document id `orgId:productId`.
 
-- [ ] **Step 4: Implement Firestore key reads**
+- [x] **Step 4: Implement Firestore key reads**
 
 In `shared/key_store.py`:
 
@@ -80,7 +80,7 @@ In `shared/key_store.py`:
 - Parse `{**snapshot.to_dict(), "key": requested_key}` so stored data cannot change key identity.
 - Reject malformed records through the shared contract rather than treating them as privileged.
 
-- [ ] **Step 5: Run adapter and full tests**
+- [x] **Step 5: Run adapter and full tests**
 
 Run:
 
@@ -89,7 +89,7 @@ pytest tests/test_cloud_adapters.py -q
 pytest -q
 ```
 
-- [ ] **Step 6: Commit Firestore adapters**
+- [x] **Step 6: Commit Firestore adapters**
 
 ```bash
 git add shared/key_store.py shared/resolution_store.py tests/test_cloud_adapters.py
@@ -106,7 +106,7 @@ git commit -m "feat: implement Firestore edge stores"
 - Modify: `tardis-edge/shared/settings.py`
 - Modify: `tardis-edge/shared/__init__.py`
 
-- [ ] **Step 1: Add failing cache tests**
+- [x] **Step 1: Add failing cache tests**
 
 Add a `CountingKeyStore` and controllable clock to `tests/test_cloud_adapters.py` and cover:
 
@@ -135,7 +135,7 @@ def test_key_cache_rejects_ttl_over_five_minutes():
         CachingKeyStore(source, ttl_seconds=301)
 ```
 
-- [ ] **Step 2: Add failing settings tests**
+- [x] **Step 2: Add failing settings tests**
 
 In `tests/test_settings.py`, clear the relevant environment for every test and cover:
 
@@ -145,17 +145,17 @@ In `tests/test_settings.py`, clear the relevant environment for every test and c
 - a Firestore key store is wrapped in `CachingKeyStore` with `KEY_CACHE_TTL_SECONDS`;
 - malformed JSON or invalid resolution seed fails clearly instead of silently falling back.
 
-- [ ] **Step 3: Run tests and confirm failures**
+- [x] **Step 3: Run tests and confirm failures**
 
 Run: `pytest tests/test_cloud_adapters.py tests/test_settings.py -q`
 
-- [ ] **Step 4: Implement `CachingKeyStore`**
+- [x] **Step 4: Implement `CachingKeyStore`**
 
 In `shared/key_store.py`, add a thread-safe cache wrapper using `time.monotonic`, a lock, and entries shaped as `(expires_at, Optional[KeyRecord])`. Cache both hits and misses for the configured TTL, bound the TTL to `0..300`, and expose `invalidate(key: Optional[str] = None)`.
 
 Export it from `shared/__init__.py`.
 
-- [ ] **Step 5: Make settings explicit and production-safe**
+- [x] **Step 5: Make settings explicit and production-safe**
 
 In `shared/settings.py`:
 
@@ -167,7 +167,7 @@ In `shared/settings.py`:
 - Raise descriptive `ValueError`s for invalid local seed JSON/contracts.
 - Keep cloud clients lazy: builder construction must not import `google.cloud`.
 
-- [ ] **Step 6: Run focused and full tests, then commit**
+- [x] **Step 6: Run focused and full tests, then commit**
 
 ```bash
 pytest tests/test_cloud_adapters.py tests/test_settings.py -q
@@ -184,7 +184,7 @@ git commit -m "feat: fail fast on edge configuration"
 - Modify: `tardis-edge/shared/event_sink.py`
 - Modify: `tardis-edge/tests/test_cloud_adapters.py`
 
-- [ ] **Step 1: Add failing fake-publisher tests**
+- [x] **Step 1: Add failing fake-publisher tests**
 
 Cover:
 
@@ -195,15 +195,15 @@ Cover:
 - `future.result(timeout=...)` is invoked so Cloud Run does not terminate the request before the batch is accepted;
 - publisher exceptions propagate to the collector seam, where they are deliberately swallowed.
 
-- [ ] **Step 2: Run and confirm failure**
+- [x] **Step 2: Run and confirm failure**
 
 Run: `pytest tests/test_cloud_adapters.py -q`
 
-- [ ] **Step 3: Implement the sink**
+- [x] **Step 3: Implement the sink**
 
 Change `EventSink`/`LocalInMemorySink` to hold `AttributedAnalyticsEvent`. Accept an optional injected publisher in `PubSubSink`, keep the real import lazy, serialize deterministic compact JSON, publish to the computed topic, and wait for bounded acceptance with `PUBSUB_PUBLISH_TIMEOUT_SECONDS` (default 5 seconds).
 
-- [ ] **Step 4: Run and commit**
+- [x] **Step 4: Run and commit**
 
 ```bash
 pytest tests/test_cloud_adapters.py -q
@@ -225,7 +225,7 @@ git commit -m "feat: publish attributed analytics to Pub/Sub"
 - Modify: `tardis-edge/tests/test_resolver.py`
 - Modify: `tardis-edge/tests/test_collector.py`
 
-- [ ] **Step 1: Add failing collector security/attribution tests**
+- [x] **Step 1: Add failing collector security/attribution tests**
 
 Update the collector test fixture to inject both a sink and a `LocalInMemoryKeyStore`. Every valid client payload includes a UUID `eventId` and every valid browser request includes an allowed `Origin`.
 
@@ -239,19 +239,19 @@ Add assertions that:
 - semantic rejection does not disclose whether a key exists;
 - size and malformed-JSON guardrails remain 413/400.
 
-- [ ] **Step 2: Add failing shared-origin tests**
+- [x] **Step 2: Add failing shared-origin tests**
 
 Move referer-to-origin/effective-origin handling into the shared contract module, export it, and add tests for malformed referers, exact Origin preference, scheme/host/port normalization, and query/path stripping. Update resolver tests so both services consume the same helper.
 
-- [ ] **Step 3: Run tests and confirm failure**
+- [x] **Step 3: Run tests and confirm failure**
 
 Run: `pytest tests/test_contracts.py tests/test_collector.py tests/test_resolver.py -q`
 
-- [ ] **Step 4: Implement strict client event parsing**
+- [x] **Step 4: Implement strict client event parsing**
 
 Extend `AnalyticsEvent` with required `eventId`, validate it as a UUID, require finite timestamps, strip/limit strings, and leave `AttributedAnalyticsEvent` as the only sink type.
 
-- [ ] **Step 5: Implement collector key/origin enforcement**
+- [x] **Step 5: Implement collector key/origin enforcement**
 
 Change `create_app` to accept/build a `KeyStore`. For each client event:
 
@@ -265,7 +265,7 @@ Change `create_app` to accept/build a `KeyStore`. For each client event:
 
 Keep `POST /collect` as a compatibility alias, but make `POST /events` canonical. For well-formed JSON, always return `202 {"ok": true}` regardless of accepted/dropped/sink outcome so key validity is not enumerable.
 
-- [ ] **Step 6: Run focused and full tests, then commit**
+- [x] **Step 6: Run focused and full tests, then commit**
 
 ```bash
 pytest tests/test_contracts.py tests/test_collector.py tests/test_resolver.py -q
@@ -287,11 +287,11 @@ git commit -m "feat: attribute and authorize edge analytics"
 - Modify: `tardis-edge/resolver/Dockerfile`
 - Modify: `tardis-edge/collector/Dockerfile`
 
-- [ ] **Step 1: Add deployment configuration examples**
+- [x] **Step 1: Add deployment configuration examples**
 
 Document development defaults and production-required variables without secrets. Set `TARDIS_ENV=production` in both Cloud Run images so accidental in-memory deployment fails at startup.
 
-- [ ] **Step 2: Add event schemas**
+- [x] **Step 2: Add event schemas**
 
 Check in BigQuery and Pub/Sub schemas containing exactly:
 
@@ -299,11 +299,11 @@ Check in BigQuery and Pub/Sub schemas containing exactly:
 
 Make `eventId` the documented deduplication key and keep topic/table/subscription creation as deployment commands only.
 
-- [ ] **Step 3: Update README and maintainer guidance**
+- [x] **Step 3: Update README and maintainer guidance**
 
 Remove every skeleton/unauthenticated-collector statement. Document canonical `/events`, key/origin enforcement, cache TTL, failure semantics, local commands with canonical fixtures, cloud roles, env validation, and deployment verification.
 
-- [ ] **Step 4: Verify container imports/config behavior**
+- [x] **Step 4: Verify container imports/config behavior**
 
 Run:
 
@@ -316,7 +316,7 @@ Expected: both fail clearly without `GCP_PROJECT`.
 
 Then run with required cloud variables and confirm module import succeeds without creating a client or making a network call.
 
-- [ ] **Step 5: Commit deployment contract**
+- [x] **Step 5: Commit deployment contract**
 
 ```bash
 git add .env.example deploy README.md CLAUDE.md resolver/Dockerfile collector/Dockerfile
@@ -327,7 +327,7 @@ git commit -m "docs: add edge deployment contract"
 
 ## Task 6: Edge production completion gate
 
-- [ ] **Step 1: Run all tests and package checks**
+- [x] **Step 1: Run all tests and package checks**
 
 ```bash
 pytest -q
@@ -335,7 +335,7 @@ python -m compileall -q shared resolver collector
 python -m pip check
 ```
 
-- [ ] **Step 2: Build both containers when Docker is available**
+- [x] **Step 2: Build both containers when Docker is available**
 
 ```bash
 docker build -f resolver/Dockerfile -t tardis-edge-resolver:test .
@@ -344,7 +344,7 @@ docker build -f collector/Dockerfile -t tardis-edge-collector:test .
 
 If Docker is unavailable, record that as an environment limitation and at minimum verify Dockerfile parse/context inputs plus runtime imports.
 
-- [ ] **Step 3: Scan for remaining production skeletons and drift**
+- [x] **Step 3: Scan for remaining production skeletons and drift**
 
 ```bash
 rg -n "SKELETON|TODO\(module-agent\)|NotImplementedError|collector does NOT authenticate" shared resolver collector README.md CLAUDE.md
