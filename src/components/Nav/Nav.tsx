@@ -35,7 +35,7 @@ export default function Nav() {
       </a>
 
       <div className={styles.right}>
-        <a href="#input" className={styles.ctaBtn}>
+        <a href="/demo" className={styles.ctaBtn}>
           Try Now
         </a>
       </div>

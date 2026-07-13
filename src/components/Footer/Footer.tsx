@@ -12,7 +12,7 @@ export default function Footer() {
           <Link href="/room-visualizer">Room Visualizer</Link>
         </nav>
         <span className={styles.copy}>&copy; 2026 TARDIS. All rights reserved.</span>
-        <a href="mailto:tardis.ai.com@gmail.com" className={styles.email}>tardis.ai.com@gmail.com</a>
+        <a href="mailto:founders@tardis-ai.com" className={styles.email}>founders@tardis-ai.com</a>
       </div>
     </footer>
   );
