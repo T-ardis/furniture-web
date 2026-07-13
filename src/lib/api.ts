@@ -137,8 +137,7 @@ export async function downloadModel(taskId: string, format: 'glb' | 'usdz' = 'gl
   // Return the blob as-is; model-viewer will show an error but at least won't crash.
   if (format === 'glb' && !await isGlb(blob)) {
     throw new Error(
-      'GLB format not available yet. The backend needs to be redeployed. ' +
-      'Run: cd tardis && git push (backend) && modal deploy backend/modal_app/app.py (Modal)'
+      'This model is not available in a 3D-web format yet. You can still view it in AR on a supported device.'
     );
   }
 
