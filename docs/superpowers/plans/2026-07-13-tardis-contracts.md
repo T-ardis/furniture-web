@@ -42,7 +42,7 @@
 - Consumes: the field names and validation rules in the approved production-readiness spec.
 - Produces: byte-identical fixture directories and `npm run contracts:verify`.
 
-- [ ] **Step 1: Add the failing workspace verifier**
+- [x] **Step 1: Add the failing workspace verifier**
 
 Create `furniture-web/scripts/verify-workspace-contracts.mjs`:
 
@@ -100,13 +100,13 @@ Add to `furniture-web/package.json` scripts:
 "contracts:verify": "node scripts/verify-workspace-contracts.mjs"
 ```
 
-- [ ] **Step 2: Run the verifier and confirm it fails**
+- [x] **Step 2: Run the verifier and confirm it fails**
 
 Run: `cd furniture-web && npm run contracts:verify`
 
 Expected: FAIL because `contracts/v1/key-record.valid.json` does not exist yet.
 
-- [ ] **Step 3: Add the eight canonical fixtures**
+- [x] **Step 3: Add the eight canonical fixtures**
 
 `key-record.valid.json`:
 
@@ -228,17 +228,17 @@ Expected: FAIL because `contracts/v1/key-record.valid.json` does not exist yet.
 }
 ```
 
-- [ ] **Step 4: Copy the exact fixture bytes into every consumer repository**
+- [x] **Step 4: Copy the exact fixture bytes into every consumer repository**
 
 Create `contracts/v1` under `tardis`, `tardis-edge`, `tardis-embed`, and `tardis-admin`, with the eight files above byte-identical to `furniture-web/contracts/v1`.
 
-- [ ] **Step 5: Run the parity gate**
+- [x] **Step 5: Run the parity gate**
 
 Run: `cd furniture-web && npm run contracts:verify`
 
 Expected: PASS with `Verified 8 contract fixtures across 4 repositories.`
 
-- [ ] **Step 6: Commit fixture/parity changes in each repository**
+- [x] **Step 6: Commit fixture/parity changes in each repository**
 
 Run:
 
@@ -267,7 +267,7 @@ Expected: five commits, one per independent repository.
 - Consumes: local `tardis/contracts/v1/*.json` fixtures.
 - Produces: `Resolution.from_dict`, `Resolution.to_dict`, `Resolution.to_public_dict`, `Resolution.validate`, `is_valid_origin_pattern`, and wildcard-aware `origin_allowed`.
 
-- [ ] **Step 1: Write failing backend contract tests**
+- [x] **Step 1: Write failing backend contract tests**
 
 Create `backend/tests/test_contracts_v1.py`:
 
@@ -328,13 +328,13 @@ def test_origin_patterns_are_schemeful_and_wildcard_aware():
     assert not origin_allowed(record, "https://branch.preview.example.com.evil.test")
 ```
 
-- [ ] **Step 2: Run the backend contract tests and confirm failure**
+- [x] **Step 2: Run the backend contract tests and confirm failure**
 
 Run: `cd tardis/backend && ./venv/bin/pytest tests/test_contracts_v1.py -q`
 
 Expected: FAIL because `Resolution` has no `name`, `surfaces`, `defaultSurfaceId`, or `to_public_dict`, and `is_valid_origin_pattern` does not exist.
 
-- [ ] **Step 3: Implement the canonical backend resolution**
+- [x] **Step 3: Implement the canonical backend resolution**
 
 In `backend/app/edge_publish.py`, replace the `Resolution` dataclass and update `on_generation_finished` to use the canonical names:
 
@@ -437,7 +437,7 @@ def on_generation_finished(
     return resolution
 ```
 
-- [ ] **Step 4: Implement schemeful wildcard origin matching**
+- [x] **Step 4: Implement schemeful wildcard origin matching**
 
 In `backend/app/tenants.py`, add:
 
@@ -497,7 +497,7 @@ def origin_allowed(record: KeyRecord, origin: Optional[str]) -> bool:
 
 Keep `allowedOrigins == ["*"]` working only for the existing explicit dev seed through `_origin_matches`.
 
-- [ ] **Step 5: Align the B2B response model and public serialization**
+- [x] **Step 5: Align the B2B response model and public serialization**
 
 In `backend/app/routes/b2b.py`, make `ResolutionModel` canonical:
 
@@ -557,7 +557,7 @@ Change the local-publisher and `on_generation_finished` tests to pass `name`, ca
 surfaces = [{"id": "wall", "label": "Wall", "kind": "color", "color": "#aabbcc"}]
 ```
 
-- [ ] **Step 6: Run focused and full backend tests**
+- [x] **Step 6: Run focused and full backend tests**
 
 Run:
 
@@ -569,7 +569,7 @@ cd tardis/backend
 
 Expected: focused and full backend test directories PASS.
 
-- [ ] **Step 7: Commit backend contract alignment**
+- [x] **Step 7: Commit backend contract alignment**
 
 ```bash
 cd tardis
@@ -592,7 +592,7 @@ git commit -m "feat(backend): align B2B contracts"
 - Consumes: local `tardis-edge/contracts/v1/*.json` fixtures.
 - Produces: the same resolution/origin API as backend plus `AttributedAnalyticsEvent`, without yet changing collector delivery.
 
-- [ ] **Step 1: Add failing fixture-driven edge tests**
+- [x] **Step 1: Add failing fixture-driven edge tests**
 
 Append to `tests/test_contracts.py`:
 
@@ -639,13 +639,13 @@ def test_v1_origin_pattern_validation():
     assert not is_valid_origin_pattern("shop.example.com")
 ```
 
-- [ ] **Step 2: Run the edge contract tests and confirm failure**
+- [x] **Step 2: Run the edge contract tests and confirm failure**
 
 Run: `cd tardis-edge && .venv/bin/pytest tests/test_contracts.py -q`
 
 Expected: FAIL because the canonical resolution fields, public serializer, attributed event, and origin validator do not exist.
 
-- [ ] **Step 3: Implement the edge contract types**
+- [x] **Step 3: Implement the edge contract types**
 
 In `shared/contracts.py`, replace `Resolution` with:
 
@@ -806,7 +806,7 @@ class AttributedAnalyticsEvent:
 
 Export `AttributedAnalyticsEvent` and `is_valid_origin_pattern` from `shared/__init__.py`.
 
-- [ ] **Step 4: Make resolver return only public fields**
+- [x] **Step 4: Make resolver return only public fields**
 
 In `resolver/main.py`, change the success response from `resolution.to_dict()` to:
 
@@ -848,7 +848,7 @@ monkeypatch.setenv(
 )
 ```
 
-- [ ] **Step 5: Run focused and full edge tests**
+- [x] **Step 5: Run focused and full edge tests**
 
 Run:
 
@@ -860,7 +860,7 @@ cd tardis-edge
 
 Expected: all 43+ tests PASS with updated counts.
 
-- [ ] **Step 6: Commit edge contract alignment**
+- [x] **Step 6: Commit edge contract alignment**
 
 ```bash
 cd tardis-edge
@@ -883,7 +883,7 @@ git commit -m "feat: align edge contracts"
 - Consumes: `ProductResolution` and `SurfaceSwatch` from `src/shared/config.ts`, plus local fixtures.
 - Produces: `parseProductResolution(value: unknown): ProductResolution`.
 
-- [ ] **Step 1: Add the Node TypeScript test harness**
+- [x] **Step 1: Add the Node TypeScript test harness**
 
 Run: `cd tardis-embed && npm install --save-dev tsx @types/node`
 
@@ -899,7 +899,7 @@ Change `tsconfig.json` from `"types": []` to:
 "types": ["node"]
 ```
 
-- [ ] **Step 2: Write the failing parser tests**
+- [x] **Step 2: Write the failing parser tests**
 
 Create `src/shared/contract.test.ts`:
 
@@ -939,13 +939,13 @@ for (const name of [
 }
 ```
 
-- [ ] **Step 3: Run the embed test and confirm failure**
+- [x] **Step 3: Run the embed test and confirm failure**
 
 Run: `cd tardis-embed && npm test`
 
 Expected: FAIL because `src/shared/contract.ts` does not exist.
 
-- [ ] **Step 4: Implement strict parsing**
+- [x] **Step 4: Implement strict parsing**
 
 Create `src/shared/contract.ts`:
 
@@ -1041,7 +1041,7 @@ export function parseProductResolution(value: unknown): ProductResolution {
 }
 ```
 
-- [ ] **Step 5: Run embed gates**
+- [x] **Step 5: Run embed gates**
 
 Run:
 
@@ -1054,7 +1054,7 @@ npm run build
 
 Expected: tests and typecheck PASS; build reports loader gzip below ~10 KB.
 
-- [ ] **Step 6: Commit embed parser**
+- [x] **Step 6: Commit embed parser**
 
 ```bash
 cd tardis-embed
@@ -1075,7 +1075,7 @@ git commit -m "feat: validate canonical resolutions"
 - Consumes: local canonical fixtures.
 - Produces: admin-safe `ProductResolution`, `SurfaceSwatch`, `KeyRecord`, and parser/validator functions without `server-only` imports.
 
-- [ ] **Step 1: Write failing admin contract tests**
+- [x] **Step 1: Write failing admin contract tests**
 
 Create `src/lib/tardis-contracts.test.ts`:
 
@@ -1119,13 +1119,13 @@ Update the test script:
 "test": "node --import tsx --test src/lib/credits.test.ts src/lib/tardis-contracts.test.ts"
 ```
 
-- [ ] **Step 2: Run admin tests and confirm failure**
+- [x] **Step 2: Run admin tests and confirm failure**
 
 Run: `cd tardis-admin && npm test`
 
 Expected: FAIL because `tardis-contracts.ts` does not exist.
 
-- [ ] **Step 3: Implement the admin contract module**
+- [x] **Step 3: Implement the admin contract module**
 
 Create `src/lib/tardis-contracts.ts`:
 
@@ -1278,7 +1278,7 @@ export function parseKeyRecord(value: unknown): KeyRecord {
 }
 ```
 
-- [ ] **Step 4: Run admin gates**
+- [x] **Step 4: Run admin gates**
 
 Run:
 
@@ -1291,7 +1291,7 @@ npm run build
 
 Expected: tests, lint, and build PASS.
 
-- [ ] **Step 5: Commit admin contract module**
+- [x] **Step 5: Commit admin contract module**
 
 ```bash
 cd tardis-admin
