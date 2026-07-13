@@ -34,6 +34,10 @@ export default function Home() {
   useEffect(() => {
     const stored = getStoredEmail();
     if (stored) {
+      // Auth is restored from localStorage after mount so server and client
+      // render the same pre-auth markup first; updating state here (not during
+      // render) is the intentional pattern that avoids a hydration mismatch.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAuthedEmail(stored);
       setAuthChecked(true);
       return;

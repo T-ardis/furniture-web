@@ -13,6 +13,11 @@ export default function History({ onSelect }: Props) {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    // Read localStorage after mount: the server renders an empty list, then
+    // the client hydrates it. Doing this in an effect (rather than during
+    // render) is what keeps SSR/CSR markup identical and avoids a hydration
+    // mismatch — the intentional, correct use of a post-mount state update.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setItems(getHistory());
   }, []);
 

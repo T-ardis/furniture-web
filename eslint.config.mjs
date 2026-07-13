@@ -1,12 +1,9 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import next from "eslint-config-next";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({ baseDirectory: __dirname });
-
-const eslintConfig = [...compat.extends("next/core-web-vitals")];
+// eslint-config-next 16.x ships a native flat config (an array of
+// Linter.Config objects). Spread it directly — do NOT route it through
+// FlatCompat, which JSON-stringifies plugin objects holding circular refs
+// and crashes ESLint ("Converting circular structure to JSON").
+const eslintConfig = [...next];
 
 export default eslintConfig;
