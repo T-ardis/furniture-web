@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { safeFetch, normalizeUrl, SsrfError } from '@/lib/ssrf';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
@@ -23,10 +24,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing "url" field' }, { status: 400 });
     }
 
-    let resolved = url.trim();
-    if (!resolved.startsWith('http://') && !resolved.startsWith('https://')) {
-      resolved = 'https://' + resolved;
-    }
+    // Validate scheme/credentials/host up front; reject non-http(s) URLs.
+    const resolved = normalizeUrl(url).href;
 
     // Check if direct image URL
     if (isDirectImageUrl(resolved)) {
@@ -79,31 +78,40 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(result);
   } catch (err) {
+    // SsrfError carries a user-safe message and means the URL was disallowed.
+    if (err instanceof SsrfError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+    // Anything else may contain internal detail — log it, return a generic error.
     console.error('[Scrape] Error:', err);
-    const message = err instanceof Error ? err.message : 'Scraping failed';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: 'We could not read that product page. Please check the URL and try again.' },
+      { status: 502 },
+    );
   }
 }
 
 // ── Fetch page ───────────────────────────────────────────────────────────────
 
 async function fetchPage(url: string): Promise<string> {
-  const res = await fetch(url, {
+  const res = await safeFetch(url, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.9',
       'Cache-Control': 'no-cache',
     },
-    redirect: 'follow',
-    signal: AbortSignal.timeout(15000),
+    allowedContentTypes: ['text/html', 'application/xhtml+xml', 'application/xml', 'text/plain'],
+    perHopTimeoutMs: 15_000,
+    totalTimeoutMs: 20_000,
+    maxBytes: 8 * 1024 * 1024,
   });
 
-  if (!res.ok) {
+  if (res.status < 200 || res.status >= 300) {
     throw new Error(`Failed to fetch page: HTTP ${res.status}`);
   }
 
-  return res.text();
+  return res.body.toString('utf-8');
 }
 
 // ── Direct image check ───────────────────────────────────────────────────────
