@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getConfig } from '@/lib/config';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY || '';
+const cfg = getConfig();
+const API_URL = cfg.apiUrl;
+const API_KEY = cfg.apiKey;
 
 /**
  * GET /api/download/:taskId?format=usdz
@@ -16,6 +18,13 @@ export async function GET(
 ) {
   const { taskId } = await params;
   const format = req.nextUrl.searchParams.get('format') || '';
+
+  if (!API_URL) {
+    return NextResponse.json(
+      { error: 'The model service is not available right now.' },
+      { status: 503 },
+    );
+  }
 
   const url = `${API_URL}/download/${taskId}${format ? `?format=${format}` : ''}`;
 

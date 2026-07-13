@@ -1,7 +1,9 @@
+import { getConfig } from './config';
+
 const EMAIL_KEY = 'tardis_email';
 const UTM_KEY = 'tardis_utm';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const BACKEND_URL = getConfig().apiUrl;
 
 // ── Email session ────────────────────────────────────────────────────────
 
@@ -43,6 +45,7 @@ export async function checkEmailInWaitlist(email: string): Promise<boolean> {
  * Check if this email can still generate (has remaining generations).
  */
 export async function canGenerate(email: string): Promise<boolean> {
+  if (!BACKEND_URL) return false; // backend unconfigured — fail closed
   try {
     const res = await fetch(`${BACKEND_URL}/gate`, {
       method: 'POST',
@@ -62,6 +65,7 @@ export async function canGenerate(email: string): Promise<boolean> {
  * Call when a generation completes successfully.
  */
 export async function incrementGenerationCount(email: string): Promise<{ allowed: boolean }> {
+  if (!BACKEND_URL) return { allowed: false }; // backend unconfigured — fail closed
   try {
     const res = await fetch(`${BACKEND_URL}/gate`, {
       method: 'POST',

@@ -1,5 +1,15 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY || '';
+import { getConfig } from './config';
+
+const cfg = getConfig();
+const API_KEY = cfg.apiKey;
+
+const BACKEND_UNAVAILABLE = 'The 3D generation service is not available right now. Please try again later.';
+
+/** Base URL for the tardis backend, or throw an honest error if unconfigured. */
+function apiBase(): string {
+  if (!cfg.apiUrl) throw new Error(BACKEND_UNAVAILABLE);
+  return cfg.apiUrl;
+}
 
 function headers(extra?: Record<string, string>): HeadersInit {
   const h: Record<string, string> = { 'Content-Type': 'application/json', ...extra };
@@ -44,7 +54,7 @@ export interface ResearchResponse {
 
 export async function healthCheck(): Promise<boolean> {
   try {
-    const res = await fetch(`${API_URL}/health`);
+    const res = await fetch(`${apiBase()}/health`);
     return res.ok;
   } catch {
     return false;
@@ -55,7 +65,7 @@ export async function submitGeneration(
   imageBase64: string,
   opts?: { steps?: number; seed?: number; face_count?: number },
 ): Promise<GenerateResponse> {
-  const res = await fetch(`${API_URL}/generate/async`, {
+  const res = await fetch(`${apiBase()}/generate/async`, {
     method: 'POST',
     headers: headers(),
     body: JSON.stringify({
@@ -73,7 +83,7 @@ export async function submitGeneration(
 }
 
 export async function pollStatus(taskId: string): Promise<JobStatus> {
-  const res = await fetch(`${API_URL}/status/${taskId}`, { headers: headers() });
+  const res = await fetch(`${apiBase()}/status/${taskId}`, { headers: headers() });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Status poll failed (${res.status}): ${text}`);
@@ -86,7 +96,7 @@ export function getDownloadUrl(taskId: string, format?: 'glb' | 'usdz'): string 
   if (format === 'usdz') {
     return `/api/download/${taskId}?format=usdz`;
   }
-  const base = `${API_URL}/download/${taskId}`;
+  const base = `${apiBase()}/download/${taskId}`;
   return format ? `${base}?format=${format}` : base;
 }
 
@@ -140,7 +150,7 @@ export async function generateRoomPreview(
   productImageBase64: string,
   productName: string,
 ): Promise<RoomPreviewResponse> {
-  const res = await fetch(`${API_URL}/preview/room`, {
+  const res = await fetch(`${apiBase()}/preview/room`, {
     method: 'POST',
     headers: headers(),
     body: JSON.stringify({
@@ -161,7 +171,7 @@ export async function findSimilar(
   name: string,
   category: string,
 ): Promise<ResearchResponse> {
-  const res = await fetch(`${API_URL}/research/similar`, {
+  const res = await fetch(`${apiBase()}/research/similar`, {
     method: 'POST',
     headers: headers(),
     body: JSON.stringify({ image: imageBase64, name, category }),
@@ -189,7 +199,7 @@ export function findSimilarStream(
 
   (async () => {
     try {
-      const res = await fetch(`${API_URL}/research/similar/stream`, {
+      const res = await fetch(`${apiBase()}/research/similar/stream`, {
         method: 'POST',
         headers: headers(),
         body: JSON.stringify({ image: imageBase64, name, category }),
