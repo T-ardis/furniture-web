@@ -34,7 +34,7 @@ export default function DemoPage() {
       <p className={styles.banner}>
         This is a mock retailer product page. Both the{' '}
         <strong>View in your room</strong> button (3D&nbsp;+&nbsp;native AR) and the{' '}
-        <strong>See it on your wall</strong> button (live in-browser camera) below are
+        <strong>See it on your wall</strong> button (photo wall preview) below are
         powered by the real TARDIS embed — the same single{' '}
         <code>&lt;script&gt;</code> a retailer drops onto their own site. Nothing here
         is a mockup of the AR itself.
@@ -224,7 +224,7 @@ function Available({ embed }: { embed: ResolvedEmbed }) {
           </div>
         </section>
 
-        {/* ── Product 2 — Arlo wallcovering (surface mode: live camera) ─── */}
+        {/* ── Product 2 — Arlo wallcovering (surface mode: photo wall preview) ─── */}
         <section className={`${styles.product} ${styles.dept}`} id="wallcoverings" aria-label="Arlo Wallcovering">
           <div className={styles.deptHead}>
             <p className={styles.eyebrow}>New this season</p>
@@ -238,7 +238,7 @@ function Available({ embed }: { embed: ResolvedEmbed }) {
                 role="img"
                 aria-label="Arlo wallcovering, repeated swatch shown at roll scale"
               >
-                <span className={styles.stageHint}>◱ Preview it live on your wall</span>
+                <span className={styles.stageHint}>◱ See it on your wall from a photo</span>
               </div>
             </div>
 
@@ -313,26 +313,21 @@ function Available({ embed }: { embed: ResolvedEmbed }) {
               </div>
 
               {/*
-                Native-AR triggers, one per finish. The loader wires all three;
-                CSS shows only the one matching the selected finish. Each opens
-                the wallcovering as a real-world-sized wallpaper panel placed on
-                the wall via AR Quick Look (iOS) / Scene Viewer (Android).
+                Surface-mode trigger. Opens the photo wall-preview: the shopper
+                takes/uploads a photo of their wall, the finish is auto-detected
+                onto it with perspective + the room's own lighting, and all three
+                finishes are swappable inside the viewer (no per-finish button).
               */}
               <div className={styles.wallAr}>
-                <button data-tardis data-product="arlo-trellis" data-mode="auto" className={styles.arButton}>
-                  See Sage Trellis on your wall
-                </button>
-                <button data-tardis data-product="arlo-zellige" data-mode="auto" className={styles.arButton}>
-                  See Marin Zellige on your wall
-                </button>
-                <button data-tardis data-product="arlo-clay" data-mode="auto" className={styles.arButton}>
-                  See Clay Limewash on your wall
+                <button data-tardis data-product="arlo-wallcovering" data-mode="surface" className={styles.arButton}>
+                  See it on your wall
                 </button>
               </div>
 
               <p className={styles.previewNote}>
-                Opens in AR — point your phone at your wall to place the wallcovering
-                at full scale. Works on iPhone and Android, no app needed.
+                Take a photo of your wall — the finish is applied automatically,
+                matched to your room’s lighting. Works on iPhone and Android in the
+                browser, no app needed.
               </p>
 
               <div className={styles.accordions}>
