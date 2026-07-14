@@ -312,14 +312,27 @@ function Available({ embed }: { embed: ResolvedEmbed }) {
                 </button>
               </div>
 
-              {/* Canonical TARDIS embed trigger — surface mode (design §4). */}
-              <button data-tardis data-product="arlo-wallcovering" data-mode="surface" className={styles.arButton}>
-                See it on your wall
-              </button>
+              {/*
+                Native-AR triggers, one per finish. The loader wires all three;
+                CSS shows only the one matching the selected finish. Each opens
+                the wallcovering as a real-world-sized wallpaper panel placed on
+                the wall via AR Quick Look (iOS) / Scene Viewer (Android).
+              */}
+              <div className={styles.wallAr}>
+                <button data-tardis data-product="arlo-trellis" data-mode="auto" className={styles.arButton}>
+                  See Sage Trellis on your wall
+                </button>
+                <button data-tardis data-product="arlo-zellige" data-mode="auto" className={styles.arButton}>
+                  See Marin Zellige on your wall
+                </button>
+                <button data-tardis data-product="arlo-clay" data-mode="auto" className={styles.arButton}>
+                  See Clay Limewash on your wall
+                </button>
+              </div>
 
               <p className={styles.previewNote}>
-                Live in-browser camera preview — colour and scale are approximate.
-                Works on iPhone and Android, no app needed.
+                Opens in AR — point your phone at your wall to place the wallcovering
+                at full scale. Works on iPhone and Android, no app needed.
               </p>
 
               <div className={styles.accordions}>

@@ -327,12 +327,20 @@
 
 /* Only the finish/fabric name matching the checked option is shown. */
 .optVal > span { display: none; }
+/* :has()-based per-swatch reveal isn't applied by Next's CSS pipeline here, so
+   show the default (first) name statically rather than an empty label. */
+.optVal > span:first-child { display: inline; }
 .product:has(#fab-oat:checked)   :global(.fn-oat)   { display: inline; }
 .product:has(#fab-sage:checked)  :global(.fn-sage)  { display: inline; }
 .product:has(#fab-slate:checked) :global(.fn-slate) { display: inline; }
 .dept:has(#finish-wallpaper:checked) :global(.fn-wallpaper) { display: inline; }
 .dept:has(#finish-tile:checked)      :global(.fn-tile)      { display: inline; }
 .dept:has(#finish-paint:checked)     :global(.fn-paint)     { display: inline; }
+
+/* Native-AR wallpaper buttons — one per finish, always visible (the finish is
+   in each label). Kept :has-free on purpose: Next's CSS pipeline does not apply
+   :has() with scoped ids here, so no runtime toggle is relied on. */
+.wallAr { display: flex; flex-direction: column; gap: 0.55rem; }
 
 .swatches { display: flex; gap: 0.75rem; }
 
