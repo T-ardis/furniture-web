@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Space_Grotesk, Inter } from 'next/font/google';
 import SmoothScroll from '@/components/SmoothScroll/SmoothScroll';
 import { ToastProvider } from '@/components/Toast/ToastProvider';
-import { getWebsiteJsonLd, getApplicationJsonLd, getOrganizationJsonLd, getFaqJsonLd } from './jsonld';
+import { getWebsiteJsonLd, getApplicationJsonLd, getOrganizationJsonLd } from './jsonld';
 import './globals.css';
 
 const spaceGrotesk = Space_Grotesk({
@@ -109,10 +109,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(getOrganizationJsonLd()) }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(getFaqJsonLd()) }}
         />
       </head>
       <body style={{ fontFamily: 'var(--font-body, Inter, sans-serif)' }}>

@@ -1,15 +1,24 @@
 import type { MetadataRoute } from 'next';
+import { getConfig } from '@/lib/config';
 
 const BASE = 'https://app.tardis-ai.com';
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  // When the demo is live, `/` redirects to the noindex /demo (see next.config.ts),
+  // so it must not be advertised as an indexable URL.
+  const root: MetadataRoute.Sitemap = getConfig().isDemoConfigured
+    ? []
+    : [
+        {
+          url: BASE,
+          lastModified: new Date(),
+          changeFrequency: 'weekly',
+          priority: 1,
+        },
+      ];
+
   return [
-    {
-      url: BASE,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 1,
-    },
+    ...root,
     {
       url: `${BASE}/ar-furniture-viewer`,
       lastModified: new Date(),
