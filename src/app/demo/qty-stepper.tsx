@@ -6,12 +6,12 @@ import styles from './demo.module.css';
 /**
  * Small, self-contained quantity stepper for the demo storefront.
  * Isolated as a client component so the surrounding PDP — including the
- * embed triggers and the loader <Script> — stays server-rendered.
+ * embed trigger and the loader <Script> — stays server-rendered.
  */
-export function QtyStepper({ label = 'Quantity' }: { label?: string }) {
+export function QtyStepper() {
   const [qty, setQty] = useState(1);
   return (
-    <div className={styles.qty} role="group" aria-label={label}>
+    <div className={styles.qty} role="group" aria-label="Quantity">
       <button
         type="button"
         className={styles.qtyBtn}

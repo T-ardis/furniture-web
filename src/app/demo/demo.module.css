@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════════════
    NORTHWIND HOME — premium demo storefront (dark theme).
-   Two products share one PDP surface; both wire the real embed.
+   One product PDP, wiring the real embed.
    ══════════════════════════════════════════════════════════════ */
 
 .page {
@@ -173,45 +173,6 @@
   padding: 0.5rem;
 }
 
-/* ── Wallcovering panel (repeating swatch at roll scale) ─────── */
-
-.dept { background: transparent; }
-
-.deptHead { margin-bottom: 1.75rem; }
-
-.deptTitle {
-  font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  font-size: 1.6rem;
-  margin: 0.25rem 0 0;
-}
-
-.wallPanel {
-  position: relative;
-  aspect-ratio: 4 / 3;
-  border: 1px solid var(--border-visible);
-  border-radius: var(--radius-lg, 16px);
-  overflow: hidden;
-  box-shadow: inset 0 0 0 6px rgba(8, 8, 8, 0.55), inset 0 40px 90px rgba(0, 0, 0, 0.45);
-  background-color: #efeae1;
-  background-image: url('/demo/patterns/wallpaper-trellis.png');
-  background-repeat: repeat;
-  background-size: 128px 128px;
-  transition: background-size 0.2s ease;
-}
-
-/* Finish switching — pure CSS via :checked / :has() (no JS). */
-.dept:has(#finish-tile:checked) .wallPanel {
-  background-image: url('/demo/patterns/tile-zellige.png');
-  background-color: #2f5d55;
-  background-size: 150px 150px;
-}
-.dept:has(#finish-paint:checked) .wallPanel {
-  background-image: none;
-  background-color: #c9b8a3;
-}
-
 /* ── Buy box / details ──────────────────────────────────────── */
 
 .details { min-width: 0; }
@@ -279,11 +240,6 @@
   text-decoration: line-through;
 }
 
-.priceUnit {
-  font-size: 0.95rem;
-  color: var(--text-secondary);
-}
-
 .priceOff {
   font-size: 0.7rem;
   font-weight: 700;
@@ -304,7 +260,7 @@
   font-size: 0.92rem;
 }
 
-/* ── Options: fabric swatches / finish chips ────────────────── */
+/* ── Options: fabric swatches ───────────────────────────────── */
 
 .opt { margin-bottom: 1.75rem; }
 
@@ -325,7 +281,7 @@
 
 .optVal { color: var(--text-primary); font-weight: 500; }
 
-/* Only the finish/fabric name matching the checked option is shown. */
+/* Only the fabric name matching the checked option is shown. */
 .optVal > span { display: none; }
 /* :has()-based per-swatch reveal isn't applied by Next's CSS pipeline here, so
    show the default (first) name statically rather than an empty label. */
@@ -333,14 +289,6 @@
 .product:has(#fab-oat:checked)   :global(.fn-oat)   { display: inline; }
 .product:has(#fab-sage:checked)  :global(.fn-sage)  { display: inline; }
 .product:has(#fab-slate:checked) :global(.fn-slate) { display: inline; }
-.dept:has(#finish-wallpaper:checked) :global(.fn-wallpaper) { display: inline; }
-.dept:has(#finish-tile:checked)      :global(.fn-tile)      { display: inline; }
-.dept:has(#finish-paint:checked)     :global(.fn-paint)     { display: inline; }
-
-/* Native-AR wallpaper buttons — one per finish, always visible (the finish is
-   in each label). Kept :has-free on purpose: Next's CSS pipeline does not apply
-   :has() with scoped ids here, so no runtime toggle is relied on. */
-.wallAr { display: flex; flex-direction: column; gap: 0.55rem; }
 
 .swatches { display: flex; gap: 0.75rem; }
 
@@ -364,24 +312,9 @@
   outline: 2px solid transparent;
 }
 
-.finishChip {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-md, 8px);
-  border: 1px solid var(--border-visible);
-  background-repeat: repeat;
-  background-size: 40px 40px;
-  cursor: pointer;
-  outline-offset: 3px;
-  transition: outline-color 0.15s ease;
-  outline: 2px solid transparent;
-}
+.vhInput:checked + .swatch { outline-color: var(--accent); }
 
-.vhInput:checked + .swatch,
-.vhInput:checked + .finishChip { outline-color: var(--accent); }
-
-.vhInput:focus-visible + .swatch,
-.vhInput:focus-visible + .finishChip { outline-color: var(--accent-hover); }
+.vhInput:focus-visible + .swatch { outline-color: var(--accent-hover); }
 
 /* ── Buy row: quantity + add to cart ────────────────────────── */
 
@@ -457,21 +390,6 @@
 }
 
 .arButton:hover { background: var(--accent-hover); }
-
-.previewNote {
-  display: flex;
-  gap: 0.5rem;
-  font-size: 0.76rem;
-  line-height: 1.5;
-  color: var(--text-secondary);
-  margin: 0.85rem 0 0;
-}
-
-.previewNote::before {
-  content: 'ⓘ';
-  color: var(--accent);
-  flex: none;
-}
 
 /* ── Assurances ─────────────────────────────────────────────── */
 
@@ -568,55 +486,6 @@
   letter-spacing: 0.05em;
   opacity: 0.7;
 }
-
-/* ── Completes the room ─────────────────────────────────────── */
-
-.related { padding: 3.25rem 0; }
-
-.relatedTitle {
-  font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  font-size: 1.4rem;
-  margin: 0 0 1.5rem;
-}
-
-.relatedGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.5rem;
-}
-
-@media (max-width: 720px) {
-  .relatedGrid { grid-template-columns: 1fr 1fr; }
-}
-
-.card { display: block; }
-
-.cardMedia {
-  display: block;
-  aspect-ratio: 1;
-  border-radius: var(--radius-md, 8px);
-  border: 1px solid var(--border-subtle);
-  overflow: hidden;
-  background: var(--bg-surface);
-}
-
-.cardImg {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  padding: 0.6rem;
-}
-
-.cardTitle {
-  font-size: 0.9rem;
-  font-weight: 500;
-  margin: 0.75rem 0 0.2rem;
-  color: var(--text-primary);
-}
-
-.cardPrice { font-size: 0.85rem; color: var(--text-secondary); margin: 0; }
 
 /* ── Footer ─────────────────────────────────────────────────── */
 

@@ -8,12 +8,9 @@ import styles from './demo.module.css';
 export const metadata: Metadata = {
   title: 'Retailer demo — TARDIS embed',
   description:
-    'A demonstration retailer product page running the real, installed TARDIS embed. One script tag adds “View in your room” AR and live wall preview to any storefront.',
+    'A demonstration retailer product page running the real, installed TARDIS embed. One script tag adds “View in your room” AR to any storefront.',
   robots: { index: false, follow: false },
 };
-
-const WALLPAPER = '/demo/patterns/wallpaper-trellis.png';
-const TILE = '/demo/patterns/tile-zellige.png';
 
 export default function DemoPage() {
   const model = buildDemoModel(getConfig());
@@ -26,15 +23,14 @@ export default function DemoPage() {
         <nav className={styles.storeNav} aria-label="Primary">
           <span>Sofas</span>
           <span>Seating</span>
-          <span>Wallcoverings</span>
+          <span>Tables</span>
           <span>Lighting</span>
         </nav>
       </header>
 
       <p className={styles.banner}>
-        This is a mock retailer product page. Both the{' '}
-        <strong>View in your room</strong> button (3D&nbsp;+&nbsp;native AR) and the{' '}
-        <strong>See it on your wall</strong> button (photo wall preview) below are
+        This is a mock retailer product page. The{' '}
+        <strong>View in your room</strong> button (3D&nbsp;+&nbsp;native AR) below is
         powered by the real TARDIS embed — the same single{' '}
         <code>&lt;script&gt;</code> a retailer drops onto their own site. Nothing here
         is a mockup of the AR itself.
@@ -49,7 +45,7 @@ function Available({ embed }: { embed: ResolvedEmbed }) {
   return (
     <>
       <main>
-        {/* ── Product 1 — Halden sofa (object mode: 3D + AR) ─────────── */}
+        {/* ── Halden sofa — 3D + native AR ──────────────────────────── */}
         <section className={styles.product} aria-label="Halden Three-Seat Sofa">
           <div className={styles.pdp}>
             <div className={styles.gallery}>
@@ -223,245 +219,21 @@ function Available({ embed }: { embed: ResolvedEmbed }) {
             </section>
           </div>
         </section>
-
-        {/* ── Product 2 — Arlo wallcovering (surface mode: photo wall preview) ─── */}
-        <section className={`${styles.product} ${styles.dept}`} id="wallcoverings" aria-label="Arlo Wallcovering">
-          <div className={styles.deptHead}>
-            <p className={styles.eyebrow}>New this season</p>
-            <h2 className={styles.deptTitle}>Wallcoverings</h2>
-          </div>
-
-          <div className={styles.pdp}>
-            <div className={styles.gallery}>
-              <div
-                className={styles.wallPanel}
-                role="img"
-                aria-label="Arlo wallcovering, repeated swatch shown at roll scale"
-              >
-                <span className={styles.stageHint}>◱ See it on your wall from a photo</span>
-              </div>
-            </div>
-
-            <section className={styles.details}>
-              <nav className={styles.breadcrumb}>Walls / Wallcoverings / Arlo</nav>
-              <p className={styles.eyebrow}>The Arlo Collection</p>
-              <h2 className={styles.title}>Arlo Wallcovering — Sage Trellis</h2>
-
-              <div className={styles.rating}>
-                <span className={styles.stars} aria-hidden="true">
-                  ★★★★★
-                </span>
-                <span className={styles.ratingText}>4.7 · 86 reviews</span>
-              </div>
-
-              <div className={styles.price}>
-                <span className={styles.priceNow}>$96</span>
-                <span className={styles.priceUnit}>per 10&nbsp;m roll</span>
-              </div>
-
-              <p className={styles.copy}>
-                A hand-drawn trellis on matte non-woven paper — paste-the-wall,
-                dry-strippable, made to order in Ghent. The motif is also available as
-                a glazed zellige tile and a colour-matched limewash paint.
-              </p>
-
-              <div className={styles.opt}>
-                <div className={styles.optHead}>
-                  <span className={styles.optKey}>Finish</span>
-                  <span className={`${styles.optVal} ${styles.finishName}`}>
-                    <span className="fn-wallpaper">Sage Trellis wallpaper</span>
-                    <span className="fn-tile">Marin Zellige tile</span>
-                    <span className="fn-paint">Clay Limewash paint</span>
-                  </span>
-                </div>
-                <div className={styles.swatches}>
-                  <input
-                    className={styles.vhInput}
-                    type="radio"
-                    name="finish"
-                    id="finish-wallpaper"
-                    defaultChecked
-                  />
-                  <label
-                    className={styles.finishChip}
-                    htmlFor="finish-wallpaper"
-                    style={{ backgroundImage: `url(${WALLPAPER})` }}
-                    aria-label="Sage Trellis wallpaper"
-                  />
-                  <input className={styles.vhInput} type="radio" name="finish" id="finish-tile" />
-                  <label
-                    className={styles.finishChip}
-                    htmlFor="finish-tile"
-                    style={{ backgroundImage: `url(${TILE})` }}
-                    aria-label="Marin Zellige tile"
-                  />
-                  <input className={styles.vhInput} type="radio" name="finish" id="finish-paint" />
-                  <label
-                    className={styles.finishChip}
-                    htmlFor="finish-paint"
-                    style={{ background: '#c9b8a3' }}
-                    aria-label="Clay Limewash paint"
-                  />
-                </div>
-              </div>
-
-              <div className={styles.buyRow}>
-                <QtyStepper label="Quantity (rolls)" />
-                <button className={styles.addToCart} type="button">
-                  Add to cart
-                </button>
-              </div>
-
-              {/*
-                Surface-mode trigger. Opens the photo wall-preview: the shopper
-                takes/uploads a photo of their wall, the finish is auto-detected
-                onto it with perspective + the room's own lighting, and all three
-                finishes are swappable inside the viewer (no per-finish button).
-              */}
-              <div className={styles.wallAr}>
-                <button data-tardis data-product="arlo-wallcovering" data-mode="surface" className={styles.arButton}>
-                  See it on your wall
-                </button>
-              </div>
-
-              <p className={styles.previewNote}>
-                Take a photo of your wall — the finish is applied automatically,
-                matched to your room’s lighting. Works on iPhone and Android in the
-                browser, no app needed.
-              </p>
-
-              <div className={styles.accordions}>
-                <details className={styles.acc} open>
-                  <summary className={styles.accSummary}>
-                    Details <span className={styles.plus}>+</span>
-                  </summary>
-                  <div className={styles.accBody}>
-                    Arlo is drawn by hand and printed with water-based inks on
-                    FSC-certified non-woven paper. The diagonal trellis carries a
-                    straight match, so lengths line up without pattern waste.
-                  </div>
-                </details>
-                <details className={styles.acc}>
-                  <summary className={styles.accSummary}>
-                    Specifications <span className={styles.plus}>+</span>
-                  </summary>
-                  <div className={styles.accBody}>
-                    <dl className={styles.specs}>
-                      <div className={styles.spec}>
-                        <dt>Roll width</dt>
-                        <dd>52 cm / 20.5″</dd>
-                      </div>
-                      <div className={styles.spec}>
-                        <dt>Roll length</dt>
-                        <dd>10 m / 32.8 ft</dd>
-                      </div>
-                      <div className={styles.spec}>
-                        <dt>Pattern match</dt>
-                        <dd>Straight match</dd>
-                      </div>
-                      <div className={styles.spec}>
-                        <dt>Application</dt>
-                        <dd>Paste the wall</dd>
-                      </div>
-                      <div className={styles.spec}>
-                        <dt>Removal</dt>
-                        <dd>Dry-strippable</dd>
-                      </div>
-                      <div className={styles.spec}>
-                        <dt>Coverage</dt>
-                        <dd>≈ 5.2 m² per roll</dd>
-                      </div>
-                    </dl>
-                  </div>
-                </details>
-                <details className={styles.acc}>
-                  <summary className={styles.accSummary}>
-                    Application &amp; care <span className={styles.plus}>+</span>
-                  </summary>
-                  <div className={styles.accBody}>
-                    Hang on a clean, primed wall with a standard non-woven adhesive.
-                    Wipeable with a damp cloth; avoid abrasive cleaners.
-                  </div>
-                </details>
-              </div>
-
-              <p className={styles.sku}>Product: arlo-wallcovering</p>
-            </section>
-          </div>
-        </section>
-
-        {/* ── Completes the room ────────────────────────────────────── */}
-        <section className={styles.related} aria-label="Completes the room">
-          <h2 className={styles.relatedTitle}>Completes the room</h2>
-          <div className={styles.relatedGrid}>
-            <article className={styles.card}>
-              <span className={styles.cardMedia}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/demo/sofa.webp"
-                  alt=""
-                  className={styles.cardImg}
-                  style={{ transform: 'scale(1.6)', objectPosition: '20% 50%' }}
-                />
-              </span>
-              <h3 className={styles.cardTitle}>Halden Armchair</h3>
-              <p className={styles.cardPrice}>$749</p>
-            </article>
-            <article className={styles.card}>
-              <span className={styles.cardMedia}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/demo/sofa.webp"
-                  alt=""
-                  className={styles.cardImg}
-                  style={{ transform: 'scale(2.1)', objectPosition: '70% 60%' }}
-                />
-              </span>
-              <h3 className={styles.cardTitle}>Halden Ottoman</h3>
-              <p className={styles.cardPrice}>$399</p>
-            </article>
-            <article className={styles.card}>
-              <span
-                className={styles.cardMedia}
-                style={{
-                  backgroundImage: `url(${WALLPAPER})`,
-                  backgroundRepeat: 'repeat',
-                  backgroundSize: '64px 64px',
-                }}
-              />
-              <h3 className={styles.cardTitle}>Arlo Sample Set</h3>
-              <p className={styles.cardPrice}>$8</p>
-            </article>
-            <article className={styles.card}>
-              <span
-                className={styles.cardMedia}
-                style={{
-                  backgroundImage: `url(${TILE})`,
-                  backgroundRepeat: 'repeat',
-                  backgroundSize: '72px 72px',
-                }}
-              />
-              <h3 className={styles.cardTitle}>Marin Zellige — box of 44</h3>
-              <p className={styles.cardPrice}>$118</p>
-            </article>
-          </div>
-        </section>
       </main>
 
       <footer className={styles.footer}>
         <div className={styles.footBrand}>
           <span className={styles.storeName}>NORTHWIND HOME</span>
           <p className={styles.footNote}>
-            Considered furniture and wallcoverings for real rooms. This is a
-            demonstration storefront — every product here installs the real TARDIS
-            embed.
+            Considered furniture for real rooms. This is a demonstration
+            storefront — the Halden sofa above installs the real TARDIS embed.
           </p>
         </div>
         <div className={styles.footCols}>
           <div className={styles.footCol}>
             <h4>Shop</h4>
             <span>Sofas</span>
-            <span>Wallcoverings</span>
+            <span>Tables</span>
             <span>Lighting</span>
           </div>
           <div className={styles.footCol}>
@@ -482,7 +254,7 @@ function Available({ embed }: { embed: ResolvedEmbed }) {
       {/*
         Canonical embed install (design §4): one deferred script that carries the
         publishable key + edge/collector URLs. Driven entirely by env config. It
-        auto-scans BOTH triggers above (object + surface).
+        auto-scans the trigger above.
       */}
       <Script
         src={embed.widgetUrl}
